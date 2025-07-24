@@ -57,10 +57,6 @@ export class RideApi implements ICredentialType {
 		const email = credentials.email as string;
 		const userPassword = credentials.userPassword as string;
 
-		// n8nのBLANK_VALUE問題をチェック
-		if (userPassword.includes('__n8n_BLANK_VALUE_')) {
-			throw new Error('パスワードが正しく設定されていません。認証情報を再設定してください。');
-		}
 
 		// auth_tokenを取得
 		const authToken = await this.getAuthToken(apiKey, email, userPassword);
@@ -81,10 +77,6 @@ export class RideApi implements ICredentialType {
 	private async getAuthToken(apiKey: string, email: string, userPassword: string): Promise<string> {
 		// n8nのHTTP request機能を使用するため、fetchの代わりにaxiosを使用
 		
-		// n8nのBLANK_VALUE問題をチェック
-		if (userPassword.includes('__n8n_BLANK_VALUE_')) {
-			throw new Error('パスワードが正しく設定されていません。認証情報を再設定してください。');
-		}
 		
 		try {
 			const requestData = {

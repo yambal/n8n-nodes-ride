@@ -71,7 +71,6 @@ export class Ride implements INodeType {
 	};
 
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
-		this.logger.debug('Ride node execute started');
 		const items = this.getInputData();
 		const returnData: INodeExecutionData[] = [];
 
@@ -80,7 +79,6 @@ export class Ride implements INodeType {
 				const resource = this.getNodeParameter('resource', i) as string;
 				const operation = this.getNodeParameter('operation', i) as string;
 				
-				this.logger.debug('Processing:', { resource, operation });
 
 				let responseData;
 
@@ -114,10 +112,8 @@ export class Ride implements INodeType {
 
 
 async function executeUserOperation(this: IExecuteFunctions, operation: string, _itemIndex: number) {
-		this.logger.debug('executeUserOperation called:', { operation });
 		switch (operation) {
 			case 'getCurrent':
-				this.logger.debug('Calling httpRequestWithAuthentication for getCurrent');
 				return await this.helpers.httpRequestWithAuthentication.call(this, 'rideApi', {
 					method: 'GET',
 					url: '/api/v1/users/current.json',
