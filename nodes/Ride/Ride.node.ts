@@ -44,6 +44,10 @@ export class Ride implements INodeType {
 						name: 'User',
 						value: 'user',
 					},
+					{
+						name: 'Trip',
+						value: 'trip',
+					},
 				],
 				default: 'user',
 			},
@@ -67,6 +71,39 @@ export class Ride implements INodeType {
 				],
 				default: 'getCurrent',
 			},
+			{
+				displayName: 'Operation',
+				name: 'operation',
+				type: 'options',
+				noDataExpression: true,
+				displayOptions: {
+					show: {
+						resource: ['trip'],
+					},
+				},
+				options: [
+					{
+						name: 'List',
+						value: 'list',
+						description: 'Get a list of trips',
+						action: 'List trips',
+					},
+				],
+				default: 'list',
+			},
+			{
+				displayName: 'Page Number',
+				name: 'page',
+				type: 'number',
+				displayOptions: {
+					show: {
+						resource: ['trip'],
+						operation: ['list'],
+					},
+				},
+				default: 1,
+				description: 'Page number for pagination',
+			},
 		],
 	};
 
@@ -84,6 +121,8 @@ export class Ride implements INodeType {
 
 				if (resource === 'user') {
 					responseData = await executeUserOperation.call(this, operation, i);
+				} else if (resource === 'trip') {
+					responseData = await executeTripOperation.call(this, operation, i);
 				}
 
 				const executionData = this.helpers.constructExecutionMetaData(
@@ -122,5 +161,21 @@ async function executeUserOperation(this: IExecuteFunctions, operation: string, 
 			default:
 				throw new ApplicationError(`Unknown user operation: ${operation}`);
 		}
+}
+
+async function executeTripOperation(this: IExecuteFunctions, operation: string, itemIndex: number) {
+	switch (operation) {
+		case 'list': {
+			const page = this.getNodeParameter('page', itemIndex) as number;
+			const queryParams = page > 1 ? `?page=${page}` : '';
+			return await this.helpers.httpRequestWithAuthentication.call(this, 'rideApi', {
+				method: 'GET',
+				url: `/api/v1/trips.json${queryParams}`,
+			});
+		}
+
+		default:
+			throw new ApplicationError(`Unknown trip operation: ${operation}`);
+	}
 }
 
