@@ -45,6 +45,10 @@ export class Ride implements INodeType {
 						value: 'user',
 					},
 					{
+						name: 'Events',
+						value: 'events',
+					},
+					{
 						name: 'Trips',
 						value: 'trips',
 					},
@@ -78,6 +82,32 @@ export class Ride implements INodeType {
 				noDataExpression: true,
 				displayOptions: {
 					show: {
+						resource: ['events'],
+					},
+				},
+				options: [
+					{
+						name: 'Get Event',
+						value: 'getEvent',
+						description: 'Get a specific event by ID',
+						action: 'Get an event',
+					},
+					{
+						name: 'Get Events',
+						value: 'getEvents',
+						description: 'Get a list of events',
+						action: 'List events',
+					},
+				],
+				default: 'getEvents',
+			},
+			{
+				displayName: 'Operation',
+				name: 'operation',
+				type: 'options',
+				noDataExpression: true,
+				displayOptions: {
+					show: {
 						resource: ['trips'],
 					},
 				},
@@ -98,6 +128,20 @@ export class Ride implements INodeType {
 				default: 'getTrips',
 			},
 			{
+				displayName: 'Event ID',
+				name: 'eventId',
+				type: 'string',
+				required: true,
+				displayOptions: {
+					show: {
+						resource: ['events'],
+						operation: ['getEvent'],
+					},
+				},
+				default: '',
+				description: 'The ID of the event to retrieve',
+			},
+			{
 				displayName: 'Trip ID',
 				name: 'tripId',
 				type: 'string',
@@ -110,6 +154,19 @@ export class Ride implements INodeType {
 				},
 				default: '',
 				description: 'The ID of the trip to retrieve',
+			},
+			{
+				displayName: 'Page Number',
+				name: 'page',
+				type: 'number',
+				displayOptions: {
+					show: {
+						resource: ['events'],
+						operation: ['getEvents'],
+					},
+				},
+				default: 1,
+				description: 'Page number for pagination',
 			},
 			{
 				displayName: 'Page Number',
@@ -141,6 +198,8 @@ export class Ride implements INodeType {
 
 				if (resource === 'user') {
 					responseData = await executeUserOperation.call(this, operation, i);
+				} else if (resource === 'events') {
+					responseData = await executeEventsOperation.call(this, operation, i);
 				} else if (resource === 'trips') {
 					responseData = await executeTripsOperation.call(this, operation, i);
 				}
@@ -183,6 +242,30 @@ async function executeUserOperation(this: IExecuteFunctions, operation: string, 
 		}
 }
 
+
+async function executeEventsOperation(this: IExecuteFunctions, operation: string, itemIndex: number) {
+	switch (operation) {
+		case 'getEvent': {
+			const eventId = this.getNodeParameter('eventId', itemIndex) as string;
+			return await this.helpers.httpRequestWithAuthentication.call(this, 'rideApi', {
+				method: 'GET',
+				url: `/api/v1/events/${eventId}.json`,
+			});
+		}
+
+		case 'getEvents': {
+			const page = this.getNodeParameter('page', itemIndex) as number;
+			const queryParams = page > 1 ? `?page=${page}` : '';
+			return await this.helpers.httpRequestWithAuthentication.call(this, 'rideApi', {
+				method: 'GET',
+				url: `/api/v1/events.json${queryParams}`,
+			});
+		}
+
+		default:
+			throw new ApplicationError(`Unknown events operation: ${operation}`);
+	}
+}
 
 async function executeTripsOperation(this: IExecuteFunctions, operation: string, itemIndex: number) {
 	switch (operation) {
