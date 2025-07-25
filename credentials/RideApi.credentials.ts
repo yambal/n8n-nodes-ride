@@ -20,6 +20,9 @@ export class RideApi implements ICredentialType {
 			displayName: 'API Key',
 			name: 'apiKey',
 			type: 'string',
+			typeOptions: {
+				password: true,
+			},
 			default: '',
 			required: true,
 			description: 'Your Ride with GPS API key',
@@ -36,7 +39,9 @@ export class RideApi implements ICredentialType {
 			displayName: 'Password',
 			name: 'userPassword',
 			type: 'string',
-			typeOptions: { password: false },
+			typeOptions: {
+				password: true,
+			},
 			default: '',
 			required: true,
 			noDataExpression: true,
