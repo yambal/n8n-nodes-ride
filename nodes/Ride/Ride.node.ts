@@ -10,7 +10,7 @@ export class Ride implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Ride',
 		name: 'ride',
-		icon: 'file:ride.svg',
+		icon: 'file:RideWithGPS.svg',
 		group: ['transform'],
 		version: 1,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
