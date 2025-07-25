@@ -17,17 +17,6 @@ export class RideApi implements ICredentialType {
 
 	properties: INodeProperties[] = [
 		{
-			displayName: 'API Key',
-			name: 'apiKey',
-			type: 'string',
-			typeOptions: {
-				password: true,
-			},
-			default: '',
-			required: true,
-			description: 'Your Ride with GPS API key',
-		},
-		{
 			displayName: 'Email',
 			name: 'email',
 			type: 'string',
@@ -58,7 +47,7 @@ export class RideApi implements ICredentialType {
 			requestOptions.url = `https://ridewithgps.com${requestOptions.url}`;
 		}
 
-		const apiKey = credentials.apiKey as string;
+		const apiKey = '2c9ddba6';
 		const email = credentials.email as string;
 		const userPassword = credentials.userPassword as string;
 
@@ -118,7 +107,7 @@ export class RideApi implements ICredentialType {
 			url: '/api/v1/auth_tokens.json',
 			method: 'POST',
 			headers: {
-				'x-rwgps-api-key': '={{$credentials.apiKey}}',
+				'x-rwgps-api-key': '2c9ddba6',
 				'Content-Type': 'application/json',
 			},
 			body: {
