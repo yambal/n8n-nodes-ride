@@ -53,6 +53,10 @@ export class Ride implements INodeType {
 						value: 'routes',
 					},
 					{
+						name: 'Sync',
+						value: 'sync',
+					},
+					{
 						name: 'Trips',
 						value: 'trips',
 					},
@@ -138,6 +142,26 @@ export class Ride implements INodeType {
 				noDataExpression: true,
 				displayOptions: {
 					show: {
+						resource: ['sync'],
+					},
+				},
+				options: [
+					{
+						name: 'Sync',
+						value: 'sync',
+						description: 'Synchronize changes since a specific datetime',
+						action: 'Sync changes',
+					},
+				],
+				default: 'sync',
+			},
+			{
+				displayName: 'Operation',
+				name: 'operation',
+				type: 'options',
+				noDataExpression: true,
+				displayOptions: {
+					show: {
 						resource: ['trips'],
 					},
 				},
@@ -184,6 +208,43 @@ export class Ride implements INodeType {
 				},
 				default: '',
 				description: 'The ID of the route to retrieve',
+			},
+			{
+				displayName: 'Since Datetime',
+				name: 'since',
+				type: 'string',
+				required: true,
+				displayOptions: {
+					show: {
+						resource: ['sync'],
+						operation: ['sync'],
+					},
+				},
+				default: '1970-01-01T00:00:00Z',
+				description: 'ISO8601 datetime to sync changes from (e.g., 2024-01-01T00:00:00Z)',
+			},
+			{
+				displayName: 'Asset Types',
+				name: 'assets',
+				type: 'multiOptions',
+				displayOptions: {
+					show: {
+						resource: ['sync'],
+						operation: ['sync'],
+					},
+				},
+				options: [
+					{
+						name: 'Routes',
+						value: 'routes',
+					},
+					{
+						name: 'Trips',
+						value: 'trips',
+					},
+				],
+				default: ['routes', 'trips'],
+				description: 'Types of assets to synchronize',
 			},
 			{
 				displayName: 'Trip ID',
@@ -259,6 +320,8 @@ export class Ride implements INodeType {
 					responseData = await executeEventsOperation.call(this, operation, i);
 				} else if (resource === 'routes') {
 					responseData = await executeRoutesOperation.call(this, operation, i);
+				} else if (resource === 'sync') {
+					responseData = await executeSyncOperation.call(this, operation, i);
 				} else if (resource === 'trips') {
 					responseData = await executeTripsOperation.call(this, operation, i);
 				}
@@ -347,6 +410,31 @@ async function executeRoutesOperation(this: IExecuteFunctions, operation: string
 
 		default:
 			throw new ApplicationError(`Unknown routes operation: ${operation}`);
+	}
+}
+
+async function executeSyncOperation(this: IExecuteFunctions, operation: string, itemIndex: number) {
+	switch (operation) {
+		case 'sync': {
+			const since = this.getNodeParameter('since', itemIndex) as string;
+			const assets = this.getNodeParameter('assets', itemIndex) as string[];
+			
+			// Build query parameters manually
+			const queryParts: string[] = [];
+			queryParts.push(`since=${encodeURIComponent(since)}`);
+			if (assets && assets.length > 0) {
+				queryParts.push(`assets=${encodeURIComponent(assets.join(','))}`);
+			}
+			const queryString = queryParts.join('&');
+			
+			return await this.helpers.httpRequestWithAuthentication.call(this, 'rideApi', {
+				method: 'GET',
+				url: `/api/v1/sync.json?${queryString}`,
+			});
+		}
+
+		default:
+			throw new ApplicationError(`Unknown sync operation: ${operation}`);
 	}
 }
 
