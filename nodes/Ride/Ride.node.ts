@@ -41,15 +41,11 @@ export class Ride implements INodeType {
 				noDataExpression: true,
 				options: [
 					{
-						name: 'User',
-						value: 'user',
-					},
-					{
-						name: 'Events',
+						name: 'Event',
 						value: 'events',
 					},
 					{
-						name: 'Routes',
+						name: 'Route',
 						value: 'routes',
 					},
 					{
@@ -57,9 +53,13 @@ export class Ride implements INodeType {
 						value: 'sync',
 					},
 					{
-						name: 'Trips',
+						name: 'Trip',
 						value: 'trips',
 					},
+					{
+						name: 'User',
+						value: 'user',
+					}
 				],
 				default: 'user',
 			},
