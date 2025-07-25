@@ -5,6 +5,7 @@ import type {
 	INodeTypeDescription,
 } from 'n8n-workflow';
 import { ApplicationError, NodeConnectionType } from 'n8n-workflow';
+import { TripData, tripToKml } from '../../utils/tripToKml';
 
 export class Ride implements INodeType {
 	description: INodeTypeDescription = {
@@ -261,6 +262,19 @@ export class Ride implements INodeType {
 				description: 'The ID of the trip to retrieve',
 			},
 			{
+				displayName: 'Convert to KML',
+				name: 'convertToKml',
+				type: 'boolean',
+				displayOptions: {
+					show: {
+						resource: ['trips'],
+						operation: ['getTrip'],
+					},
+				},
+				default: false,
+				description: 'Whether to convert trip data to KML format for GPS/mapping applications',
+			},
+			{
 				displayName: 'Page Number',
 				name: 'page',
 				type: 'number',
@@ -442,10 +456,26 @@ async function executeTripsOperation(this: IExecuteFunctions, operation: string,
 	switch (operation) {
 		case 'getTrip': {
 			const tripId = this.getNodeParameter('tripId', itemIndex) as string;
-			return await this.helpers.httpRequestWithAuthentication.call(this, 'rideApi', {
+			const convertToKml = this.getNodeParameter('convertToKml', itemIndex) as boolean;
+			
+			const responseData: TripData = await this.helpers.httpRequestWithAuthentication.call(this, 'rideApi', {
 				method: 'GET',
-				url: `/api/v1/trips/${tripId}.json`,
+				url: `/api/v1/trips/${tripId}.json`
 			});
+			
+			if (convertToKml && responseData) {
+				try {
+					const kmlData = tripToKml(responseData);
+					return {
+						//...responseData,
+						kml: kmlData
+					};
+				} catch (error) {
+					throw new ApplicationError(`Failed to convert trip to KML: ${error.message}`);
+				}
+			}
+			
+			return responseData;
 		}
 
 		case 'getTrips': {
