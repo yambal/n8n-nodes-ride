@@ -262,9 +262,9 @@ export class Ride implements INodeType {
 				description: 'The ID of the trip to retrieve',
 			},
 			{
-				displayName: 'Output Format',
-				name: 'outputFormat',
-				type: 'options',
+				displayName: 'Output Formats',
+				name: 'outputFormats',
+				type: 'multiOptions',
 				displayOptions: {
 					show: {
 						resource: ['trips'],
@@ -285,11 +285,11 @@ export class Ride implements INodeType {
 					{
 						name: 'Image',
 						value: 'image',
-						description: 'Generate static map image using Google Maps (requires Google Maps API key)',
+						description: 'Generate static map image using Google Maps (⚠️ Requires Google Maps API key in credentials)',
 					},
 				],
-				default: 'data',
-				description: 'Choose the output format for trip data',
+				default: ['data'],
+				description: 'Choose the output formats for trip data (multiple selections allowed)',
 			},
 			{
 				displayName: 'Page Number',
@@ -357,7 +357,25 @@ export class Ride implements INodeType {
 					responseData = await executeTripsOperation.call(this, operation, i);
 				}
 
-				if (responseData && responseData.binary) {
+				if (Array.isArray(responseData)) {
+					// 複数のアウトプット（複数形式選択）の場合
+					for (const output of responseData) {
+						if (output.binary) {
+							// バイナリデータが含まれる場合
+							returnData.push({
+								json: output.json,
+								binary: output.binary,
+								pairedItem: { item: i }
+							});
+						} else {
+							// 通常のJSONデータの場合
+							returnData.push({
+								json: output.json,
+								pairedItem: { item: i }
+							});
+						}
+					}
+				} else if (responseData && responseData.binary) {
 					// バイナリデータ（画像）の場合
 					returnData.push({
 						json: responseData.json,
@@ -483,53 +501,79 @@ async function executeTripsOperation(this: IExecuteFunctions, operation: string,
 	switch (operation) {
 		case 'getTrip': {
 			const tripId = this.getNodeParameter('tripId', itemIndex) as string;
-			const outputFormat = this.getNodeParameter('outputFormat', itemIndex) as string;
+			const outputFormats = this.getNodeParameter('outputFormats', itemIndex) as string[];
 			
 			const responseData: TripData = await this.helpers.httpRequestWithAuthentication.call(this, 'rideApi', {
 				method: 'GET',
 				url: `/api/v1/trips/${tripId}.json`
 			});
 			
-			if (outputFormat === 'kml' && responseData) {
-				try {
-					const kmlData = tripToKml(responseData);
-					return {
-						kml: kmlData
-					};
-				} catch (error) {
-					throw new ApplicationError(`Failed to convert trip to KML: ${error.message}`);
-				}
-			}
+			const outputs: any[] = [];
 			
-			if (outputFormat === 'image' && responseData) {
-				try {
-					const imageBuffer = await generateStaticMap.call(this, responseData, itemIndex);
-					const fileName = `trip-${tripId}-map.png`;
-					
-					// n8nのbinaryDataとして設定
-					const binaryData = await this.helpers.prepareBinaryData(
-						imageBuffer,
-						fileName,
-						'image/png'
-					);
-					
-					// バイナリデータを含む形式で返す
-					return {
+			// 各出力形式に対して処理
+			for (const format of outputFormats) {
+				if (format === 'data') {
+					outputs.push({
 						json: {
-							trip_id: tripId,
-							fileName: fileName,
-							mimeType: 'image/png'
-						},
-						binary: {
-							[fileName]: binaryData
+							...responseData,
+							output_format: 'data'
 						}
-					};
-				} catch (error) {
-					throw new ApplicationError(`Failed to generate static map: ${error.message}`);
+					});
+				}
+				
+				if (format === 'kml' && responseData) {
+					try {
+						const kmlData = tripToKml(responseData);
+						outputs.push({
+							json: {
+								kml: kmlData,
+								trip_id: tripId,
+								output_format: 'kml'
+							}
+						});
+					} catch (error) {
+						throw new ApplicationError(`Failed to convert trip to KML: ${error.message}`);
+					}
+				}
+				
+				if (format === 'image' && responseData) {
+					try {
+						// Google APIキーの存在をチェック
+						const credentials = await this.getCredentials('rideApi');
+						const googleMapsApiKey = credentials.googleMapsApiKey as string;
+						
+						if (!googleMapsApiKey || googleMapsApiKey.trim() === '') {
+							throw new ApplicationError('Google Maps API key is required for image generation. Please add it to your Ride credentials.');
+						}
+						
+						const imageBuffer = await generateStaticMap.call(this, responseData, itemIndex);
+						const fileName = `trip-${tripId}-map.png`;
+						
+						// n8nのbinaryDataとして設定
+						const binaryData = await this.helpers.prepareBinaryData(
+							imageBuffer,
+							fileName,
+							'image/png'
+						);
+						
+						outputs.push({
+							json: {
+								trip_id: tripId,
+								fileName: fileName,
+								mimeType: 'image/png',
+								output_format: 'image'
+							},
+							binary: {
+								[fileName]: binaryData
+							}
+						});
+					} catch (error) {
+						throw new ApplicationError(`Failed to generate static map: ${error.message}`);
+					}
 				}
 			}
 			
-			return responseData;
+			return outputs;
 		}
 
 		case 'getTrips': {
