@@ -36,6 +36,17 @@ export class RideApi implements ICredentialType {
 			noDataExpression: true,
 			description: 'Your Ride with GPS password',
 		},
+		{
+			displayName: 'Google Maps API Key',
+			name: 'googleMapsApiKey',
+			type: 'string',
+			typeOptions: {
+				password: true,
+			},
+			default: '',
+			required: false,
+			description: 'Your Google Maps API key for Static Maps (optional, required for static map operations)',
+		},
 	];
 
 	authenticate = async (

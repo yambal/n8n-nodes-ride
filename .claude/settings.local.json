@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(npm install:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(rm:*)",
+      "Bash(del \"E:\\ProjectE\\n8n-nodes-ride\\credentials\\GoogleStaticMapApi.credentials.ts\")"
     ],
     "deny": []
   }
