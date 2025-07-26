@@ -6,7 +6,6 @@ import type {
 } from 'n8n-workflow';
 import { ApplicationError, NodeConnectionType } from 'n8n-workflow';
 import { TripData, tripToKml } from '../../utils/tripToKml';
-import { StaticMap } from 'static-map-generator';
 
 export class Ride implements INodeType {
 	description: INodeTypeDescription = {
@@ -263,72 +262,17 @@ export class Ride implements INodeType {
 				description: 'The ID of the trip to retrieve',
 			},
 			{
-				displayName: 'Output Format',
-				name: 'outputFormat',
-				type: 'options',
+				displayName: 'Convert to KML',
+				name: 'convertToKml',
+				type: 'boolean',
 				displayOptions: {
 					show: {
 						resource: ['trips'],
 						operation: ['getTrip'],
 					},
 				},
-				options: [
-					{
-						name: 'Data',
-						value: 'data',
-						description: 'Return raw trip data',
-					},
-					{
-						name: 'KML',
-						value: 'kml',
-						description: 'Convert trip data to KML format for GPS/mapping applications',
-					},
-					{
-						name: 'Image',
-						value: 'image',
-						description: 'Generate a static map image of the trip route',
-					},
-				],
-				default: 'data',
-				description: 'Choose the output format for trip data',
-			},
-			{
-				displayName: 'Image Width',
-				name: 'imageWidth',
-				type: 'number',
-				required: true,
-				displayOptions: {
-					show: {
-						resource: ['trips'],
-						operation: ['getTrip'],
-						outputFormat: ['image'],
-					},
-				},
-				default: 600,
-				typeOptions: {
-					minValue: 100,
-					maxValue: 2000,
-				},
-				description: 'Width of the generated image in pixels',
-			},
-			{
-				displayName: 'Image Height',
-				name: 'imageHeight',
-				type: 'number',
-				required: true,
-				displayOptions: {
-					show: {
-						resource: ['trips'],
-						operation: ['getTrip'],
-						outputFormat: ['image'],
-					},
-				},
-				default: 600,
-				typeOptions: {
-					minValue: 100,
-					maxValue: 2000,
-				},
-				description: 'Height of the generated image in pixels',
+				default: false,
+				description: 'Whether to convert trip data to KML format for GPS/mapping applications',
 			},
 			{
 				displayName: 'Page Number',
@@ -512,48 +456,22 @@ async function executeTripsOperation(this: IExecuteFunctions, operation: string,
 	switch (operation) {
 		case 'getTrip': {
 			const tripId = this.getNodeParameter('tripId', itemIndex) as string;
-			const outputFormat = this.getNodeParameter('outputFormat', itemIndex) as string;
+			const convertToKml = this.getNodeParameter('convertToKml', itemIndex) as boolean;
 			
 			const responseData: TripData = await this.helpers.httpRequestWithAuthentication.call(this, 'rideApi', {
 				method: 'GET',
 				url: `/api/v1/trips/${tripId}.json`
 			});
 			
-			if (outputFormat === 'kml' && responseData) {
+			if (convertToKml && responseData) {
 				try {
 					const kmlData = tripToKml(responseData);
 					return {
+						//...responseData,
 						kml: kmlData
 					};
 				} catch (error) {
 					throw new ApplicationError(`Failed to convert trip to KML: ${error.message}`);
-				}
-			}
-			
-			if (outputFormat === 'image' && responseData) {
-				try {
-					const imageWidth = this.getNodeParameter('imageWidth', itemIndex) as number;
-					const imageHeight = this.getNodeParameter('imageHeight', itemIndex) as number;
-					const imageBuffer = await generateTripImage(responseData, { width: imageWidth, height: imageHeight });
-					// Return as n8n binary data for easier handling
-					const binaryData = await this.helpers.prepareBinaryData(
-						imageBuffer,
-						`trip_${tripId}.png`,
-						'image/png'
-					);
-					return {
-						json: {
-							tripId,
-							message: 'Trip image generated successfully',
-							width: imageWidth,
-							height: imageHeight
-						},
-						binary: {
-							data: binaryData
-						}
-					};
-				} catch (error) {
-					throw new ApplicationError(`Failed to generate trip image: ${error.message}`);
 				}
 			}
 			
@@ -574,62 +492,4 @@ async function executeTripsOperation(this: IExecuteFunctions, operation: string,
 	}
 }
 
-async function generateTripImage(tripData: TripData, size: { width: number, height: number } = { width: 600, height: 600 }): Promise<Buffer> {
-	if (!tripData.trip?.track_points || tripData.trip.track_points.length === 0) {
-		throw new ApplicationError('No track points found in trip data');
-	}
-
-	const trackPoints = tripData.trip.track_points;
-	
-	// Extract coordinates from track points
-	const coordinates = trackPoints.map(point => ({
-		lat: point.y,
-		lng: point.x
-	}));
-
-	// Calculate bounds
-	const lats = coordinates.map(coord => coord.lat);
-	const lngs = coordinates.map(coord => coord.lng);
-	const bounds = {
-		north: Math.max(...lats),
-		south: Math.min(...lats),
-		east: Math.max(...lngs),
-		west: Math.min(...lngs),
-	};
-
-	// Add padding to bounds (10% on each side)
-	const latPadding = (bounds.north - bounds.south) * 0.1;
-	const lngPadding = (bounds.east - bounds.west) * 0.1;
-	bounds.north += latPadding;
-	bounds.south -= latPadding;
-	bounds.east += lngPadding;
-	bounds.west -= lngPadding;
-
-	// Create static map
-	const map = new StaticMap({
-		bounds,
-		padding: 5,
-		size,
-		paths: [{
-			coordinates,
-			color: '#FF0000'
-		}],
-		markers: [
-			{
-				coordinate: coordinates[0],
-				color: '#00FF00',
-				size: 'medium',
-				label: 'S'
-			},
-			{
-				coordinate: coordinates[coordinates.length - 1],
-				color: '#FF0000',
-				size: 'medium',
-				label: 'E'
-			}
-		]
-	});
-
-	return await map.render();
-}
 

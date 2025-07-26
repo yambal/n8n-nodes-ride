@@ -92,18 +92,11 @@ The Sync operation is particularly useful for:
 
 ## Changelog
 
-### Version 0.1.3
-- **Trip Output Format Enhancement**: Added flexible output format selection for Trip operations
-  - **Data**: Return raw trip data (default)
-  - **KML**: Convert trip data to KML format for GPS/mapping applications
-  - **Image**: Generate static map image of trip route using static-map-generator
-- **Image Generation Features**:
-  - Customizable image dimensions (width/height) with 600x600 default
-  - Automatic route path visualization with red line
-  - Start marker (green "S") and end marker (red "E")
-  - Auto-calculated bounds with 10% padding
-  - Returns as n8n binary data for easy integration with other nodes
+### Version 0.1.4
 - **Authentication Update**: Changed from API key to service account email/password authentication
+
+### Version 0.1.3
+- Experimental features (reverted in 0.1.4)
 
 ### Version 0.1.2
 - Added KML conversion functionality for trip data
