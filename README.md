@@ -41,15 +41,14 @@ This node supports the following resources and operations:
 
 ## Credentials
 
-To use this node, you need to authenticate with Ride with GPS using a Bearer token.
+To use this node, you need to authenticate with Ride with GPS using your service account credentials.
 
 ### Prerequisites
 1. Sign up for a [Ride with GPS account](https://ridewithgps.com)
-2. Obtain an API token from your Ride with GPS account settings
 
 ### Authentication Setup
 1. In n8n, create new credentials of type "Ride API"
-2. Enter your Ride with GPS API Bearer token
+2. Enter your Ride with GPS service account email address and password
 3. Configure the base URL (defaults to `https://ridewithgps.com`)
 
 ## Compatibility
