@@ -638,7 +638,7 @@ async function generateStaticMap(this: IExecuteFunctions, tripData: TripData, it
 	params.push(`markers=color:red|label:E|${endPoint.y},${endPoint.x}`);
 
 	// パス（ルート）を追加 - URLサイズ制限のため座標数を制限
-	const maxPathPoints = 50; // Google Static Map APIのURL長制限対応
+	const maxPathPoints = 200; // Google Static Map APIのURL長制限（16,384文字）対応
 	const pathStep = Math.max(1, Math.floor(trackPoints.length / maxPathPoints));
 	const pathPoints: Array<{x: number, y: number}> = [];
 	
