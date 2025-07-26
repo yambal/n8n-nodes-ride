@@ -2,4 +2,5 @@
 export * from './tripToKml';
 export * from './kmlHelpers';
 export * from './staticMapGenerator';
+export * from './tripAnalyzer';
 export * from './types';

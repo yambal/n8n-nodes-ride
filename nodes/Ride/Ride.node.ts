@@ -8,6 +8,7 @@ import { ApplicationError, NodeConnectionType } from 'n8n-workflow';
 import { TripData, TripsListResponse } from './types';
 import { tripToKml } from '../../utils/tripToKml';
 import { generateStaticMap } from '../../utils/staticMapGenerator';
+import { analyzeTripData } from '../../utils/tripAnalyzer';
 
 export class Ride implements INodeType {
 	description: INodeTypeDescription = {
@@ -512,12 +513,16 @@ async function executeTripsOperation(this: IExecuteFunctions, operation: string,
 			
 			const outputs: any[] = [];
 			
+			// Trip解析を実行（全形式で共通）
+			const analysis = analyzeTripData(responseData.trip);
+			
 			// 各出力形式に対して処理
 			for (const format of outputFormats) {
 				if (format === 'data') {
 					outputs.push({
 						json: {
 							...responseData,
+							analysis: analysis,
 							output_format: 'data'
 						}
 					});
@@ -530,6 +535,7 @@ async function executeTripsOperation(this: IExecuteFunctions, operation: string,
 							json: {
 								kml: kmlData,
 								trip_id: tripId,
+								analysis: analysis,
 								output_format: 'kml'
 							}
 						});
@@ -563,6 +569,7 @@ async function executeTripsOperation(this: IExecuteFunctions, operation: string,
 								trip_id: tripId,
 								fileName: fileName,
 								mimeType: 'image/png',
+								analysis: analysis,
 								output_format: 'image'
 							},
 							binary: {
