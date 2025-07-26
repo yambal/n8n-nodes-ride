@@ -34,6 +34,8 @@ This node supports the following resources and operations:
 
 ### Trips
 - **Get Trip**: Retrieve details of a specific trip by ID (including track points and comprehensive trip statistics)
+  - **Multiple Output Formats**: Choose from Data, KML, and Image formats (multiple selections allowed)
+  - **Image Generation**: Create static map images using Google Maps Static API (optional feature)
 - **Get Trips**: Retrieve a paginated list of trips owned by the authenticated user
 
 ### Sync
@@ -49,7 +51,17 @@ To use this node, you need to authenticate with Ride with GPS using your service
 ### Authentication Setup
 1. In n8n, create new credentials of type "Ride API"
 2. Enter your Ride with GPS service account email address and password
-3. Configure the base URL (defaults to `https://ridewithgps.com`)
+3. **Optional**: Enter your Google Maps API key for static map image generation
+   - This is only required if you want to use the Image output format for trips
+   - You can use all other features without a Google Maps API key
+4. Configure the base URL (defaults to `https://ridewithgps.com`)
+
+### Google Maps API Setup (Optional)
+To use the static map image generation feature:
+1. Get a Google Maps API key from the [Google Cloud Console](https://console.cloud.google.com/)
+2. Enable the "Maps Static API" for your project
+3. Add the API key to your Ride API credentials in n8n
+4. **Note**: This is completely optional - all other node features work without it
 
 ## Compatibility
 
@@ -75,6 +87,18 @@ To use this node, you need to authenticate with Ride with GPS using your service
 - Select Operation: Get Route
 - Enter the Route ID
 
+**Get Trip with Multiple Output Formats:**
+- Select Resource: Trips
+- Select Operation: Get Trip  
+- Enter the Trip ID
+- Select Output Formats: Choose any combination of Data, KML, and/or Image
+- **Image Format**: Creates a static map showing the trip route with start/end markers
+  - Requires Google Maps API key in credentials
+  - Generates n8n-compatible binary data for easy use with other nodes
+
+![Static Map Example](docs/StaticMap.png)
+*Example of generated static map showing trip route with start (S) and end (E) markers*
+
 **Sync Changes:**
 - Select Resource: Sync
 - Enter a "Since Datetime" in ISO8601 format (e.g., `2024-01-01T00:00:00Z`)
@@ -91,6 +115,25 @@ The Sync operation is particularly useful for:
 - Maintaining backup copies of user's route and trip libraries
 
 ## Changelog
+
+### Version 0.2.0 (Latest)
+- **🎯 Multiple Output Formats**: Trip retrieval now supports multiple simultaneous output formats
+  - **Data**: Original JSON trip data 
+  - **KML**: GPS/mapping application compatible format
+  - **Image**: Static map visualization using Google Maps Static API
+- **🖼️ Static Map Generation**: New image output format creates visual trip representations
+  - Shows complete trip route with start (S) and end (E) markers
+  - Optimized for up to 200 coordinate points for detailed route display
+  - Returns n8n-compatible binary data for easy integration with other nodes
+  - See example image in [Usage section](#usage)
+- **🔐 Google Maps Integration**: Optional Google Maps API key support
+  - Add API key to existing Ride API credentials (completely optional)
+  - Only required for Image output format
+  - All existing features continue to work without Google Maps API key
+- **💡 Enhanced Flexibility**: Choose any combination of output formats in a single request
+  - Generate multiple outputs (e.g., Data + KML + Image) from one trip fetch
+  - Each output includes `output_format` identifier for easy processing
+- **⚠️ Smart Validation**: Automatic validation prevents Image selection without API key
 
 ### Version 0.1.4
 - **Authentication Update**: Changed from API key to service account email/password authentication
