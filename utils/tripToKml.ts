@@ -1,31 +1,8 @@
-export interface TrackPoint {
-  x: number; // longitude
-  y: number; // latitude
-  e: number; // elevation
-  t: number; // timestamp
-  s?: number; // speed
-  h?: number; // heart rate
-  c?: number; // cadence
-}
+import { TripData } from '../nodes/Ride/types/Trip.types';
+import { KMLTripData } from './types/kml.types';
+import { escapeXml, formatDuration, formatDistance, generateKMLStyle, generateKMLPlacemark } from './kmlHelpers';
 
-export interface TripData {
-  trip: {
-    id: number;
-    name: string;
-    description?: string;
-    departed_at: string;
-    locality?: string;
-    administrative_area?: string;
-    country_code?: string;
-    distance: number;
-    duration: number;
-    elevation_gain: number;
-    elevation_loss: number;
-    track_points: Array<TrackPoint>;
-  };
-}
-
-export function tripToKml(tripData: TripData): string {
+export function tripToKml(tripData: TripData | KMLTripData): string {
   const { trip } = tripData;
   
   // Generate coordinates string for KML
@@ -33,33 +10,36 @@ export function tripToKml(tripData: TripData): string {
     .map(point => `${point.x},${point.y},${point.e}`)
     .join(' ');
 
+  // Generate track style
+  const trackStyle = generateKMLStyle({
+    id: 'trackStyle',
+    lineColor: 'ff0000ff',
+    lineWidth: 3
+  });
+
+  // Generate main track placemark
+  const trackPlacemark = generateKMLPlacemark({
+    name: trip.name || `Trip ${trip.id}`,
+    description: `
+      <b>Distance:</b> ${formatDistance(trip.distance)} km<br/>
+      <b>Duration:</b> ${formatDuration(trip.duration)}<br/>
+      <b>Elevation Gain:</b> ${trip.elevation_gain} m<br/>
+      <b>Location:</b> ${[trip.locality, trip.administrative_area, trip.country_code].filter(Boolean).join(', ')}<br/>
+      <b>Date:</b> ${new Date(trip.departed_at).toLocaleString()}
+    `,
+    coordinates: coordinates,
+    styleUrl: '#trackStyle'
+  });
+
   const kml = `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
     <name>${escapeXml(trip.name || `Trip ${trip.id}`)}</name>
     <description>${escapeXml(trip.description || `Ride recorded on ${new Date(trip.departed_at).toLocaleDateString()}`)}</description>
     
-    <Style id="trackStyle">
-      <LineStyle>
-        <color>ff0000ff</color>
-        <width>3</width>
-      </LineStyle>
-    </Style>
+    ${trackStyle}
     
-    <Placemark>
-      <name>${escapeXml(trip.name || `Trip ${trip.id}`)}</name>
-      <description><![CDATA[
-        <b>Distance:</b> ${(trip.distance / 1000).toFixed(2)} km<br/>
-        <b>Duration:</b> ${Math.floor(trip.duration / 3600)}:${Math.floor((trip.duration % 3600) / 60).toString().padStart(2, '0')}:${(trip.duration % 60).toString().padStart(2, '0')}<br/>
-        <b>Elevation Gain:</b> ${trip.elevation_gain} m<br/>
-        <b>Location:</b> ${[trip.locality, trip.administrative_area, trip.country_code].filter(Boolean).join(', ')}<br/>
-        <b>Date:</b> ${new Date(trip.departed_at).toLocaleString()}
-      ]]></description>
-      <styleUrl>#trackStyle</styleUrl>
-      <LineString>
-        <coordinates>${coordinates}</coordinates>
-      </LineString>
-    </Placemark>
+    ${trackPlacemark}
     
     <!-- Start Point -->
     <Placemark>
@@ -81,13 +61,4 @@ export function tripToKml(tripData: TripData): string {
 </kml>`;
 
   return kml;
-}
-
-function escapeXml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
 }

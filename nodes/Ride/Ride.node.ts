@@ -5,7 +5,8 @@ import type {
 	INodeTypeDescription,
 } from 'n8n-workflow';
 import { ApplicationError, NodeConnectionType } from 'n8n-workflow';
-import { TripData, tripToKml } from '../../utils/tripToKml';
+import { TripData, TripsListResponse } from './types';
+import { tripToKml } from '../../utils/tripToKml';
 
 export class Ride implements INodeType {
 	description: INodeTypeDescription = {
@@ -579,10 +580,11 @@ async function executeTripsOperation(this: IExecuteFunctions, operation: string,
 		case 'getTrips': {
 			const page = this.getNodeParameter('page', itemIndex) as number;
 			const queryParams = page > 1 ? `?page=${page}` : '';
-			return await this.helpers.httpRequestWithAuthentication.call(this, 'rideApi', {
+			const response: TripsListResponse = await this.helpers.httpRequestWithAuthentication.call(this, 'rideApi', {
 				method: 'GET',
 				url: `/api/v1/trips.json${queryParams}`,
 			});
+			return response;
 		}
 
 		default:
