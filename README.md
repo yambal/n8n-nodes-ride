@@ -1,5 +1,29 @@
 # n8n-nodes-ride
 
+> **⚠️ BREAKING CHANGE NOTICE - Version 0.2.1**
+> 
+> **Important for existing users**: Version 0.2.1 introduces breaking changes to track point data format.
+> 
+> **What changed:**
+> - Route and Trip track points now use readable property names instead of single letters
+> - **Before v0.2.1**: `{x: longitude, y: latitude, e: elevation, t: timestamp, s: speed, h: heartRate, c: cadence}`  
+> - **After v0.2.1**: `{longitude, latitude, elevation, timestamp, speed, heartRate, cadence}`
+> 
+> **Why this change?** This breaking change significantly improves user experience and workflow readability. Single-letter property names (`x`, `y`, `e`) are confusing and error-prone. We made this change now while the community is still growing to minimize long-term disruption and provide a better foundation for future users.
+> 
+> **Action required:** If your workflows access track point data (e.g., `trip.track_points[0].x`), you must update them to use the new property names (e.g., `trip.track_points[0].longitude`).
+> 
+> **Migration example:**
+> ```javascript
+> // OLD (v0.2.0 and earlier)
+> const lat = trip.track_points[0].y;
+> const lng = trip.track_points[0].x;
+> 
+> // NEW (v0.2.1+)  
+> const lat = trip.track_points[0].latitude;
+> const lng = trip.track_points[0].longitude;
+> ```
+
 This is an n8n community node. It lets you use Ride with GPS in your n8n workflows.
 
 Ride with GPS is a comprehensive cycling platform that allows users to plan routes, track rides, organize events, and share their cycling adventures with a community of riders.
@@ -116,7 +140,22 @@ The Sync operation is particularly useful for:
 
 ## Changelog
 
-### Version 0.2.0 (Latest)
+### Version 0.2.1 (Latest)
+- **📊 Readable Track Points**: Route and Trip track points are now automatically converted to readable property names
+  - **Route Track Points**: API format `{x, y, e}` → Readable format `{longitude, latitude, elevation}`
+  - **Trip Track Points**: API format `{x, y, e, t, s, h, c}` → Readable format `{longitude, latitude, elevation, timestamp, speed, heartRate, cadence}`
+  - **Immediate Conversion**: Transformation occurs immediately upon API response reception
+- **🚀 Performance Optimization**: Routes list responses skip unnecessary track point transformation
+  - Routes list API responses don't include track points, so transformation is optimized to avoid wasteful processing
+  - Individual route details still receive full track point transformation when present
+- **🔧 Enhanced Data Processing**: Added comprehensive transformation functions in `utils/dataTransformer.ts`
+  - `transformAPIRouteTrackPoint()` and related functions for Route track points
+  - Maintained existing Trip transformation functions for consistency
+- **📈 Improved Developer Experience**: Track point data is now more intuitive to work with in workflows
+  - No need to remember that 'x' means longitude or 'y' means latitude
+  - Self-documenting property names improve workflow readability
+
+### Version 0.2.0
 - **🎯 Multiple Output Formats**: Trip retrieval now supports multiple simultaneous output formats
   - **Data**: Original JSON trip data 
   - **KML**: GPS/mapping application compatible format
