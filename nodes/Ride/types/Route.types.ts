@@ -1,7 +1,22 @@
 /**
+ * Route track point with readable property names for internal use
+ */
+export interface RouteTrackPoint {
+  longitude: number; // x coordinate
+  latitude: number;  // y coordinate
+  elevation: number; // e elevation in meters
+}
+
+export interface APIRouteTrackPoint {
+  x: number; // longitude
+  y: number; // latitude
+  e: number; // elevation (meters)
+}
+
+/**
  * Complete Route object from Ride with GPS API
  */
-export interface Route {
+export interface APIRoute {
   id: number;
   name: string;
   description?: string;
@@ -15,25 +30,21 @@ export interface Route {
   visibility: number; // Visibility setting (0=private, 1=public, etc.)
   created_at: string; // ISO8601 timestamp
   updated_at: string; // ISO8601 timestamp
-  track_points?: Array<{
-    x: number; // longitude
-    y: number; // latitude
-    e: number; // elevation (meters)
-  }>;
+  track_points?: Array<APIRouteTrackPoint>;
 }
 
 /**
  * Single route response from API
  */
-export interface RouteData {
-  route: Route;
+export interface APIRouteData {
+  route: APIRoute;
 }
 
 /**
  * Multiple routes response from API with pagination metadata
  */
-export interface RoutesListResponse {
-  routes: Array<Route>;
+export interface APIRoutesListResponse {
+  routes: Array<APIRoute>;
   meta: {
     total: number; // Total number of routes
     page: number; // Current page number

@@ -5,10 +5,12 @@ import type {
 	INodeTypeDescription,
 } from 'n8n-workflow';
 import { ApplicationError, NodeConnectionType } from 'n8n-workflow';
-import { TripData, TripsListResponse } from './types';
+import { APITripData, APITripsListResponse } from './types';
+import { APIRouteData, APIRoutesListResponse } from './types/Route.types';
 import { tripToKml } from '../../utils/tripToKml';
 import { generateStaticMap } from '../../utils/staticMapGenerator';
 import { analyzeTripData } from '../../utils/tripAnalyzer';
+import { transformAPITripData, TripData, transformAPIRouteData, transformAPIRoutesListResponse } from '../../utils/dataTransformer';
 
 export class Ride implements INodeType {
 	description: INodeTypeDescription = {
@@ -455,19 +457,25 @@ async function executeRoutesOperation(this: IExecuteFunctions, operation: string
 	switch (operation) {
 		case 'getRoute': {
 			const routeId = this.getNodeParameter('routeId', itemIndex) as string;
-			return await this.helpers.httpRequestWithAuthentication.call(this, 'rideApi', {
+			const apiResponseData: APIRouteData = await this.helpers.httpRequestWithAuthentication.call(this, 'rideApi', {
 				method: 'GET',
 				url: `/api/v1/routes/${routeId}.json`,
 			});
+			
+			// APIから受信したデータを可読性の高い形式に変換
+			return transformAPIRouteData(apiResponseData);
 		}
 
 		case 'getRoutes': {
 			const page = this.getNodeParameter('page', itemIndex) as number;
 			const queryParams = page > 1 ? `?page=${page}` : '';
-			return await this.helpers.httpRequestWithAuthentication.call(this, 'rideApi', {
+			const apiResponseData: APIRoutesListResponse = await this.helpers.httpRequestWithAuthentication.call(this, 'rideApi', {
 				method: 'GET',
 				url: `/api/v1/routes.json${queryParams}`,
 			});
+			
+			// APIから受信したデータを可読性の高い形式に変換
+			return transformAPIRoutesListResponse(apiResponseData);
 		}
 
 		default:
@@ -506,10 +514,13 @@ async function executeTripsOperation(this: IExecuteFunctions, operation: string,
 			const tripId = this.getNodeParameter('tripId', itemIndex) as string;
 			const outputFormats = this.getNodeParameter('outputFormats', itemIndex) as string[];
 			
-			const responseData: TripData = await this.helpers.httpRequestWithAuthentication.call(this, 'rideApi', {
+			const apiResponseData: APITripData = await this.helpers.httpRequestWithAuthentication.call(this, 'rideApi', {
 				method: 'GET',
 				url: `/api/v1/trips/${tripId}.json`
 			});
+			
+			// APIから受信したデータを可読性の高い形式に変換
+			const responseData: TripData = transformAPITripData(apiResponseData);
 			
 			const outputs: any[] = [];
 			
@@ -588,7 +599,7 @@ async function executeTripsOperation(this: IExecuteFunctions, operation: string,
 		case 'getTrips': {
 			const page = this.getNodeParameter('page', itemIndex) as number;
 			const queryParams = page > 1 ? `?page=${page}` : '';
-			const response: TripsListResponse = await this.helpers.httpRequestWithAuthentication.call(this, 'rideApi', {
+			const response: APITripsListResponse = await this.helpers.httpRequestWithAuthentication.call(this, 'rideApi', {
 				method: 'GET',
 				url: `/api/v1/trips.json${queryParams}`,
 			});

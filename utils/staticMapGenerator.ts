@@ -1,6 +1,6 @@
 import type { IExecuteFunctions } from 'n8n-workflow';
 import { ApplicationError } from 'n8n-workflow';
-import { TripData } from '../nodes/Ride/types/Trip.types';
+import { TripData } from './dataTransformer';
 
 export async function generateStaticMap(
 	context: IExecuteFunctions,
@@ -33,8 +33,8 @@ export async function generateStaticMap(
 	for (let i = waypointStep; i < trackPoints.length - waypointStep; i += waypointStep) {
 		if (waypoints.length < maxWaypoints) {
 			waypoints.push({
-				lat: trackPoints[i].y,
-				lng: trackPoints[i].x
+				lat: trackPoints[i].latitude,
+				lng: trackPoints[i].longitude
 			});
 		}
 	}
@@ -48,15 +48,15 @@ export async function generateStaticMap(
 	];
 
 	// 開始点マーカー（緑）
-	params.push(`markers=color:green|label:S|${startPoint.y},${startPoint.x}`);
+	params.push(`markers=color:green|label:S|${startPoint.latitude},${startPoint.longitude}`);
 	
 	// 終了点マーカー（赤）
-	params.push(`markers=color:red|label:E|${endPoint.y},${endPoint.x}`);
+	params.push(`markers=color:red|label:E|${endPoint.latitude},${endPoint.longitude}`);
 
 	// パス（ルート）を追加 - URLサイズ制限のため座標数を制限
 	const maxPathPoints = 200; // Google Static Map APIのURL長制限（16,384文字）対応
 	const pathStep = Math.max(1, Math.floor(trackPoints.length / maxPathPoints));
-	const pathPoints: Array<{x: number, y: number}> = [];
+	const pathPoints: Array<{longitude: number, latitude: number}> = [];
 	
 	for (let i = 0; i < trackPoints.length; i += pathStep) {
 		pathPoints.push(trackPoints[i]);
@@ -67,7 +67,7 @@ export async function generateStaticMap(
 		pathPoints.push(trackPoints[trackPoints.length - 1]);
 	}
 	
-	const pathCoords = pathPoints.map(point => `${point.y},${point.x}`).join('|');
+	const pathCoords = pathPoints.map(point => `${point.latitude},${point.longitude}`).join('|');
 	params.push(`path=color:0x0000ff|weight:3|${pathCoords}`);
 
 	// APIキーを追加

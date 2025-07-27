@@ -1,4 +1,4 @@
-import { TripData } from '../nodes/Ride/types/Trip.types';
+import { TripData } from './dataTransformer';
 import { KMLTripData } from './types/kml.types';
 import { escapeXml, formatDuration, formatDistance, generateKMLStyle, generateKMLPlacemark } from './kmlHelpers';
 
@@ -7,7 +7,13 @@ export function tripToKml(tripData: TripData | KMLTripData): string {
   
   // Generate coordinates string for KML
   const coordinates = trip.track_points
-    .map(point => `${point.x},${point.y},${point.e}`)
+    .map(point => {
+      // Handle both TrackPoint (longitude/latitude) and KMLTrackPoint (x/y) formats
+      const lng = 'longitude' in point ? point.longitude : point.x;
+      const lat = 'latitude' in point ? point.latitude : point.y;
+      const elev = 'elevation' in point ? point.elevation : point.e;
+      return `${lng},${lat},${elev}`;
+    })
     .join(' ');
 
   // Generate track style
@@ -45,7 +51,14 @@ export function tripToKml(tripData: TripData | KMLTripData): string {
     <Placemark>
       <name>Start</name>
       <Point>
-        <coordinates>${trip.track_points[0]?.x},${trip.track_points[0]?.y},${trip.track_points[0]?.e}</coordinates>
+        <coordinates>${(() => {
+          const point = trip.track_points[0];
+          if (!point) return '0,0,0';
+          const lng = 'longitude' in point ? point.longitude : point.x;
+          const lat = 'latitude' in point ? point.latitude : point.y;
+          const elev = 'elevation' in point ? point.elevation : point.e;
+          return `${lng},${lat},${elev}`;
+        })()}</coordinates>
       </Point>
     </Placemark>
     
@@ -53,7 +66,14 @@ export function tripToKml(tripData: TripData | KMLTripData): string {
     <Placemark>
       <name>End</name>
       <Point>
-        <coordinates>${trip.track_points[trip.track_points.length - 1]?.x},${trip.track_points[trip.track_points.length - 1]?.y},${trip.track_points[trip.track_points.length - 1]?.e}</coordinates>
+        <coordinates>${(() => {
+          const point = trip.track_points[trip.track_points.length - 1];
+          if (!point) return '0,0,0';
+          const lng = 'longitude' in point ? point.longitude : point.x;
+          const lat = 'latitude' in point ? point.latitude : point.y;
+          const elev = 'elevation' in point ? point.elevation : point.e;
+          return `${lng},${lat},${elev}`;
+        })()}</coordinates>
       </Point>
     </Placemark>
     
