@@ -1,7 +1,7 @@
 /**
- * Represents a single GPS track point with optional sensor data
+ * Represents a single GPS track point with optional sensor data from API
  */
-export interface TrackPoint {
+export interface APITrackPoint {
   x: number; // longitude
   y: number; // latitude
   e: number; // elevation (meters)
@@ -12,9 +12,22 @@ export interface TrackPoint {
 }
 
 /**
+ * Represents a single GPS track point with readable property names
+ */
+export interface TrackPoint {
+  longitude: number; // longitude in decimal degrees
+  latitude: number; // latitude in decimal degrees
+  elevation: number; // elevation in meters
+  timestamp: number; // timestamp (Unix time)
+  speed?: number; // speed in m/s
+  heartRate?: number; // heart rate in bpm
+  cadence?: number; // cadence in rpm
+}
+
+/**
  * Complete Trip object from Ride with GPS API
  */
-export interface Trip {
+export interface APITrip {
   id: number;
   name: string;
   description?: string;
@@ -40,21 +53,21 @@ export interface Trip {
   visibility: number; // Visibility setting (0=private, 1=public, etc.)
   created_at: string; // ISO8601 timestamp
   updated_at: string; // ISO8601 timestamp
-  track_points: Array<TrackPoint>; // GPS track data
+  track_points: Array<APITrackPoint>; // GPS track data
 }
 
 /**
  * Single trip response from API
  */
-export interface TripData {
-  trip: Trip;
+export interface APITripData {
+  trip: APITrip;
 }
 
 /**
  * Multiple trips response from API with pagination metadata
  */
-export interface TripsListResponse {
-  trips: Array<Trip>;
+export interface APITripsListResponse {
+  trips: Array<APITrip>;
   meta: {
     total: number; // Total number of trips
     page: number; // Current page number

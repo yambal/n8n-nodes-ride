@@ -1,4 +1,4 @@
-import { Trip } from '../nodes/Ride/types/Trip.types';
+import { Trip } from './dataTransformer';
 import { TripAnalysis } from './types/analysis.types';
 
 
@@ -23,10 +23,10 @@ export function analyzeTripData(trip: Trip): TripAnalysis {
   let easternmost = trackPoints[0];
 
   for (const point of trackPoints) {
-    if (point.y > northernmost.y) northernmost = point;
-    if (point.y < southernmost.y) southernmost = point;
-    if (point.x < westernmost.x) westernmost = point;
-    if (point.x > easternmost.x) easternmost = point;
+    if (point.latitude > northernmost.latitude) northernmost = point;
+    if (point.latitude < southernmost.latitude) southernmost = point;
+    if (point.longitude < westernmost.longitude) westernmost = point;
+    if (point.longitude > easternmost.longitude) easternmost = point;
   }
 
   const analysis: TripAnalysis = {

@@ -1,7 +1,7 @@
 /**
  * Common pagination metadata structure
  */
-export interface PaginationMeta {
+export interface APIPaginationMeta {
   total: number; // Total number of items
   page: number; // Current page number
   per_page: number; // Items per page
@@ -11,7 +11,7 @@ export interface PaginationMeta {
 /**
  * User object from Ride with GPS API
  */
-export interface User {
+export interface APIUser {
   id: number;
   name: string;
   email: string;
@@ -25,7 +25,7 @@ export interface User {
 /**
  * Event object from Ride with GPS API
  */
-export interface Event {
+export interface APIEvent {
   id: number;
   name: string;
   description?: string;
@@ -42,14 +42,14 @@ export interface Event {
 /**
  * Single event response from API
  */
-export interface EventData {
-  event: Event;
+export interface APIEventData {
+  event: APIEvent;
 }
 
 /**
  * Multiple events response from API with pagination metadata
  */
-export interface EventsListResponse {
-  events: Array<Event>;
-  meta: PaginationMeta;
+export interface APIEventsListResponse {
+  events: Array<APIEvent>;
+  meta: APIPaginationMeta;
 }
