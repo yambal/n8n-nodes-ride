@@ -122,6 +122,84 @@ export function generateGPXTrack(tripData: any): string {
 }
 
 /**
+ * Generate GPX waypoint element
+ */
+export function generateGPXWaypoint(waypoint: {
+	latitude: number;
+	longitude: number;
+	elevation?: number;
+	name: string;
+	description?: string;
+	type?: string;
+	symbol?: string;
+	time?: Date | string;
+}): string {
+	let wpt = `  <wpt lat="${waypoint.latitude.toFixed(7)}" lon="${waypoint.longitude.toFixed(7)}">\n`;
+	
+	// Add elevation if available
+	if (typeof waypoint.elevation === 'number') {
+		wpt += `    <ele>${waypoint.elevation.toFixed(2)}</ele>\n`;
+	}
+	
+	// Add timestamp if available
+	if (waypoint.time) {
+		wpt += `    <time>${formatGPXTime(waypoint.time)}</time>\n`;
+	}
+	
+	// Add name
+	wpt += `    <name>${escapeXml(waypoint.name)}</name>\n`;
+	
+	// Add description if available
+	if (waypoint.description) {
+		wpt += `    <desc>${escapeXml(waypoint.description)}</desc>\n`;
+	}
+	
+	// Add symbol if available
+	if (waypoint.symbol) {
+		wpt += `    <sym>${escapeXml(waypoint.symbol)}</sym>\n`;
+	}
+	
+	// Add type if available
+	if (waypoint.type) {
+		wpt += `    <type>${escapeXml(waypoint.type)}</type>\n`;
+	}
+	
+	wpt += '  </wpt>\n';
+	return wpt;
+}
+
+/**
+ * Generate GPX waypoints section from stationary points
+ */
+export function generateGPXWaypoints(stationaryPoints: Array<{
+	latitude: number;
+	longitude: number;
+	elevation?: number;
+	timestamp?: number;
+}>): string {
+	if (stationaryPoints.length === 0) {
+		return '';
+	}
+	
+	let waypoints = '';
+	stationaryPoints.forEach((point, index) => {
+		const waypointData = {
+			latitude: point.latitude,
+			longitude: point.longitude,
+			elevation: point.elevation,
+			name: `${index + 1}`,
+			description: `${index + 1}\n座標: ${point.latitude.toFixed(6)}, ${point.longitude.toFixed(6)}\n標高: ${point.elevation?.toFixed(0) || 0}m`,
+			type: 'Stationary',
+			symbol: 'Waypoint'
+		};
+		
+		waypoints += generateGPXWaypoint(waypointData);
+	});
+	
+	return waypoints;
+}
+
+/**
  * Generate individual track point
  */
 function generateTrackPoint(point: any): string {

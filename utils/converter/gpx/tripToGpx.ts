@@ -1,6 +1,7 @@
 import { TripData } from '../../dataTransformer';
 import { GPXTripData } from './types';
-import { generateGPXMetadata, generateGPXTrack } from './gpxHelpers';
+import { generateGPXMetadata, generateGPXTrack, generateGPXWaypoints } from './gpxHelpers';
+import { getSignificantLocations } from '../../common/geoUtils';
 
 export function tripToGpx(tripData: TripData | GPXTripData): string {
 	const { trip } = tripData;
@@ -24,6 +25,34 @@ export function tripToGpx(tripData: TripData | GPXTripData): string {
 	// Generate GPX metadata
 	const metadata = generateGPXMetadata(tripData);
 	
+	// Generate waypoints for stationary points
+	// Convert track points to standard format for stationary detection
+	const standardTrackPoints = trip.track_points.map(point => {
+		if ('longitude' in point && point.longitude !== undefined && point.latitude !== undefined && 'timestamp' in point) {
+			// Already in TrackPoint format
+			return point;
+		} else {
+			// Convert from GPXTrackPoint format
+			const gpxPoint = point as any; // Type assertion to access GPXTrackPoint properties
+			const lat = gpxPoint.latitude || gpxPoint.y || 0;
+			const lon = gpxPoint.longitude || gpxPoint.x || 0;
+			const ele = gpxPoint.elevation || gpxPoint.e || 0;
+			
+			return {
+				longitude: lon,
+				latitude: lat,
+				elevation: ele,
+				timestamp: 0, // GPXTrackPoint doesn't have timestamp for stationary detection
+				speed: gpxPoint.speed || 0,
+				heartRate: gpxPoint.heart_rate || 0,
+				cadence: gpxPoint.cadence || 0
+			};
+		}
+	});
+	
+	const stationaryPoints = getSignificantLocations(standardTrackPoints, 15 * 60, 100); // 15分以上、100m以内
+	const waypoints = generateGPXWaypoints(stationaryPoints);
+	
 	// Generate GPX track
 	const track = generateGPXTrack(tripData);
 	
@@ -33,7 +62,7 @@ export function tripToGpx(tripData: TripData | GPXTripData): string {
      xmlns="http://www.topografix.com/GPX/1/1" 
      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
      xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
-${metadata}${track}</gpx>`;
+${metadata}${waypoints}${track}</gpx>`;
 
 	return gpx;
 }

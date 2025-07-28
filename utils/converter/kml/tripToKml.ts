@@ -1,6 +1,7 @@
 import { TripData } from '../../dataTransformer';
 import { KMLTripData } from './types';
 import { escapeXml, formatDuration, formatDistance, generateKMLStyle, generateKMLPlacemark } from './kmlHelpers';
+import { getSignificantLocations } from '../../common/geoUtils';
 
 export function tripToKml(tripData: TripData | KMLTripData): string {
   const { trip } = tripData;
@@ -21,8 +22,8 @@ export function tripToKml(tripData: TripData | KMLTripData): string {
   const tripName = escapeXml(trip.name || `Trip ${trip.id}`);
   const tripDescription = generateTripDescription(trip);
   
-  // Generate KML style
-  const style = generateKMLStyle({
+  // Generate KML styles
+  const tripLineStyle = generateKMLStyle({
     id: 'tripLineStyle',
     lineColor: 'ff0000ff', // Red line
     lineWidth: 3,
@@ -30,13 +31,52 @@ export function tripToKml(tripData: TripData | KMLTripData): string {
     pointScale: 1.2
   });
 
-  // Generate main placemark
+  const stationaryPointStyle = generateKMLStyle({
+    id: 'stationaryPointStyle',
+    lineColor: 'ffff8000', // Orange line (not used for points)
+    lineWidth: 2,
+    pointColor: 'ffff8000', // Orange points
+    pointScale: 1.5
+  });
+
+  // Generate main placemark for the trip route
   const mainPlacemark = generateKMLPlacemark({
     name: tripName,
     description: tripDescription,
     styleUrl: '#tripLineStyle',
     coordinates: coordinates
   });
+
+  // Generate stationary point markers
+  // Convert track points to standard format for stationary detection
+  const standardTrackPoints = trip.track_points.map(point => {
+    if ('longitude' in point) {
+      // Already in TrackPoint format
+      return point;
+    } else {
+      // Convert from KMLTrackPoint format
+      return {
+        longitude: point.x,
+        latitude: point.y,
+        elevation: point.z || 0,
+        timestamp: point.t || 0,
+        speed: 0,
+        heartRate: 0,
+        cadence: 0
+      };
+    }
+  });
+  
+  const stationaryPoints = getSignificantLocations(standardTrackPoints, 15 * 60, 100); // 15分以上、100m以内
+  const stationaryPlacemarks = stationaryPoints.map((point, index) => {
+    return generateKMLPlacemark({
+      name: `${index + 1}`,
+      description: `${index + 1}<br/>座標: ${point.latitude.toFixed(6)}, ${point.longitude.toFixed(6)}<br/>標高: ${point.elevation?.toFixed(0) || 0}m`,
+      styleUrl: '#stationaryPointStyle',
+      coordinates: `${point.longitude},${point.latitude},${point.elevation || 0}`,
+      geometry: 'Point'
+    });
+  }).join('\n    ');
 
   // Generate complete KML document
   const kml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -45,9 +85,13 @@ export function tripToKml(tripData: TripData | KMLTripData): string {
     <name>${tripName}</name>
     <description><![CDATA[${tripDescription}]]></description>
     
-    ${style}
+    ${tripLineStyle}
+    
+    ${stationaryPointStyle}
     
     ${mainPlacemark}
+    
+    ${stationaryPlacemarks}
     
   </Document>
 </kml>`;
