@@ -7,7 +7,7 @@ import type {
 import { ApplicationError, NodeConnectionType } from 'n8n-workflow';
 import { APITripData, APITripsListResponse } from './types';
 import { APIRouteData, APIRoutesListResponse } from './types/Route.types';
-import { tripToKml } from '../../utils/tripToKml';
+import { tripToKml } from '../../utils/converter/kml';
 import { generateStaticMap } from '../../utils/staticMapGenerator';
 import { analyzeTripData } from '../../utils/tripAnalyzer';
 import { transformAPITripData, TripData, transformAPIRouteData, transformAPIRoutesListResponse } from '../../utils/dataTransformer';
