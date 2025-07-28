@@ -1,4 +1,5 @@
 // Core normalizer functions
 export { 
-  normalizeTrackPoints
+  normalizeTrackPoints,
+  CollinearRemovalLevel
 } from './trackPointNormalizer';

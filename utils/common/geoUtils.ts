@@ -61,84 +61,6 @@ export function calculateAveragePoint<T extends TimestampedPoint>(points: T[]): 
   } as T;
 }
 
-/**
- * Generic stationary point detection algorithm
- * @param points Array of timestamped coordinate points
- * @param options Detection options (distance and time thresholds)
- * @returns Array of stationary groups
- */
-export function detectStationaryGroups<T extends TimestampedPoint>(
-  points: T[], 
-  options: StationaryDetectionOptions = {}
-): StationaryGroup<T>[] {
-  const DISTANCE_THRESHOLD = options.distanceThreshold ?? 100; // meters
-  const TIME_THRESHOLD = options.timeThreshold ?? 10 * 60; // 10 minutes in seconds
-  const groups: StationaryGroup<T>[] = [];
-  
-  let currentGroupStart = 0;
-  
-  for (let i = 1; i < points.length; i++) {
-    const distance = calculateDistance(
-      points[currentGroupStart].latitude,
-      points[currentGroupStart].longitude,
-      points[i].latitude,
-      points[i].longitude
-    );
-    
-    // If current point is too far from group start, check if previous group was stationary
-    if (distance > DISTANCE_THRESHOLD) {
-      const groupDuration = points[i - 1].timestamp - points[currentGroupStart].timestamp;
-      
-      if (groupDuration >= TIME_THRESHOLD && i - 1 > currentGroupStart) {
-        // Create stationary group
-        const groupPoints = points.slice(currentGroupStart, i);
-        const centerPoint = calculateAveragePoint(groupPoints);
-        
-        // Calculate actual radius of the group
-        const maxDistance = Math.max(...groupPoints.map(p => 
-          calculateDistance(centerPoint.latitude, centerPoint.longitude, p.latitude, p.longitude)
-        ));
-        
-        groups.push({
-          startIndex: currentGroupStart,
-          endIndex: i - 1,
-          points: groupPoints,
-          centerPoint,
-          duration: groupDuration,
-          radius: maxDistance
-        });
-      }
-      
-      // Start new group
-      currentGroupStart = i;
-    }
-  }
-  
-  // Check the last group
-  if (currentGroupStart < points.length - 1) {
-    const groupDuration = points[points.length - 1].timestamp - points[currentGroupStart].timestamp;
-    
-    if (groupDuration >= TIME_THRESHOLD) {
-      const groupPoints = points.slice(currentGroupStart);
-      const centerPoint = calculateAveragePoint(groupPoints);
-      
-      const maxDistance = Math.max(...groupPoints.map(p => 
-        calculateDistance(centerPoint.latitude, centerPoint.longitude, p.latitude, p.longitude)
-      ));
-      
-      groups.push({
-        startIndex: currentGroupStart,
-        endIndex: points.length - 1,
-        points: groupPoints,
-        centerPoint,
-        duration: groupDuration,
-        radius: maxDistance
-      });
-    }
-  }
-  
-  return groups;
-}
 
 /**
  * Extract key points from stationary groups for marker placement
@@ -148,6 +70,7 @@ export function detectStationaryGroups<T extends TimestampedPoint>(
 export function extractStationaryMarkers<T extends TimestampedPoint>(groups: StationaryGroup<T>[]): T[] {
   return groups.map(group => group.centerPoint);
 }
+
 
 /**
  * Filter points to get significant locations (long stays)
@@ -161,6 +84,8 @@ export function getSignificantLocations<T extends TimestampedPoint>(
   minDuration: number = 30 * 60, 
   maxDistance: number = 200
 ): T[] {
+  const { detectStationaryGroups } = require('../normalizers/stationaryPointDetection');
+  
   const groups = detectStationaryGroups(points, { 
     distanceThreshold: maxDistance, 
     timeThreshold: minDuration 

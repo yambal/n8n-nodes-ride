@@ -12,7 +12,7 @@ import { generateStaticMap } from '../../utils/staticMapGenerator';
 import { analyzeTripData } from '../../utils/tripAnalyzer';
 import { transformAPITripData, TripData, transformAPIRouteData, transformAPIRoutesListResponse } from '../../utils/dataTransformer';
 import { sanitizeTrackPoints } from '../../utils/sanitizers';
-import { normalizeTrackPoints } from '../../utils/normalizers';
+import { normalizeTrackPoints, CollinearRemovalLevel } from '../../utils/normalizers';
 
 export class Ride implements INodeType {
 	description: INodeTypeDescription = {
@@ -244,6 +244,34 @@ export class Ride implements INodeType {
 				description: 'Whether to apply data normalization to GPS track points (reduces redundant data points for efficiency)',
 			},
 			{
+				displayName: 'Collinear Removal Level',
+				name: 'collinearRemovalLevel',
+				type: 'options',
+				displayOptions: {
+					show: {
+						resource: ['routes'],
+						operation: ['getRoute'],
+						normalizePoints: [true],
+					},
+				},
+				options: [
+					{
+						name: 'Low (0.2%) - Keep more points',
+						value: 'LOW',
+					},
+					{
+						name: 'Medium (0.35%) - Balanced',
+						value: 'MEDIUM',
+					},
+					{
+						name: 'High (0.5%) - Remove more points',
+						value: 'HIGH',
+					},
+				],
+				default: 'MEDIUM',
+				description: 'Controls how aggressively collinear points are removed during normalization',
+			},
+			{
 				displayName: 'Since Datetime',
 				name: 'since',
 				type: 'string',
@@ -349,6 +377,34 @@ export class Ride implements INodeType {
 				},
 				default: false,
 				description: 'Whether to apply data normalization to GPS track points (reduces redundant data points for efficiency)',
+			},
+			{
+				displayName: 'Collinear Removal Level',
+				name: 'collinearRemovalLevel',
+				type: 'options',
+				displayOptions: {
+					show: {
+						resource: ['trips'],
+						operation: ['getTrip'],
+						normalizePoints: [true],
+					},
+				},
+				options: [
+					{
+						name: 'Low (0.2%) - Keep more points',
+						value: 'LOW',
+					},
+					{
+						name: 'Medium (0.35%) - Balanced',
+						value: 'MEDIUM',
+					},
+					{
+						name: 'High (0.5%) - Remove more points',
+						value: 'HIGH',
+					},
+				],
+				default: 'MEDIUM',
+				description: 'Controls how aggressively collinear points are removed during normalization',
 			},
 			{
 				displayName: 'Image Width',
@@ -556,7 +612,8 @@ async function executeRoutesOperation(this: IExecuteFunctions, operation: string
 			
 			// ノーマライズが有効な場合、track_pointsを正規化
 			if (normalizePoints && responseData.route.track_points) {
-				responseData.route.track_points = normalizeTrackPoints(responseData.route.track_points);
+				const removalLevel = this.getNodeParameter('collinearRemovalLevel', itemIndex, 'MEDIUM') as keyof typeof CollinearRemovalLevel;
+				responseData.route.track_points = normalizeTrackPoints(responseData.route.track_points, CollinearRemovalLevel[removalLevel]);
 			}
 			
 			return responseData;
@@ -627,7 +684,8 @@ async function executeTripsOperation(this: IExecuteFunctions, operation: string,
 			
 			// ノーマライズが有効な場合、track_pointsを正規化
 			if (normalizePoints) {
-				responseData.trip.track_points = normalizeTrackPoints(responseData.trip.track_points);
+				const removalLevel = this.getNodeParameter('collinearRemovalLevel', itemIndex, 'MEDIUM') as keyof typeof CollinearRemovalLevel;
+				responseData.trip.track_points = normalizeTrackPoints(responseData.trip.track_points, CollinearRemovalLevel[removalLevel]);
 			}
 			
 			const outputs: any[] = [];
@@ -650,12 +708,25 @@ async function executeTripsOperation(this: IExecuteFunctions, operation: string,
 				if (format === 'kml' && responseData) {
 					try {
 						const kmlData = tripToKml(responseData);
+						const fileName = `trip-${tripId}.kml`;
+						const kmlBuffer = Buffer.from(kmlData, 'utf8');
+						
+						const binaryData = await this.helpers.prepareBinaryData(
+							kmlBuffer,
+							fileName,
+							'application/vnd.google-earth.kml+xml'
+						);
+						
 						outputs.push({
 							json: {
-								kml: kmlData,
 								trip_id: tripId,
+								fileName: fileName,
+								mimeType: 'application/vnd.google-earth.kml+xml',
 								analysis: analysis,
 								output_format: 'kml'
+							},
+							binary: {
+								[fileName]: binaryData
 							}
 						});
 					} catch (error) {
