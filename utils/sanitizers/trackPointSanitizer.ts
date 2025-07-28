@@ -1,4 +1,6 @@
 
+import { removeSpeedOutliers } from './speedOutlierRemover';
+
 /**
  * Sanitizes an array of track points
  * 
@@ -7,12 +9,14 @@
  */
 export function sanitizeTrackPoints<T>(points: T[]): T[] {
   console.log(`[sanitizeTrackPoints] Processing ${points.length} track points`);
-  console.log(`[sanitizeTrackPoints] First point:`, points[0]);
-  console.log(`[sanitizeTrackPoints] Last point:`, points[points.length - 1]);
   
-  // TODO: Implement actual sanitization logic here
-  // For now, this is a pass-through implementation
+  if (points.length === 0) {
+    return points;
+  }
+
+  // 速度異常の削除
+  const sanitized = removeSpeedOutliers(points);
   
-  console.log(`[sanitizeTrackPoints] Returning ${points.length} sanitized points (pass-through)`);
-  return points;
+  console.log(`[sanitizeTrackPoints] Sanitized ${points.length} -> ${sanitized.length} points`);
+  return sanitized;
 }
