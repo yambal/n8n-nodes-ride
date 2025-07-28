@@ -12,6 +12,7 @@ import { generateStaticMap } from '../../utils/staticMapGenerator';
 import { analyzeTripData } from '../../utils/tripAnalyzer';
 import { transformAPITripData, TripData, transformAPIRouteData, transformAPIRoutesListResponse } from '../../utils/dataTransformer';
 import { sanitizeTrackPoints } from '../../utils/sanitizers';
+import { normalizeTrackPoints } from '../../utils/normalizers';
 
 export class Ride implements INodeType {
 	description: INodeTypeDescription = {
@@ -230,6 +231,19 @@ export class Ride implements INodeType {
 				description: 'Whether to apply data sanitization to GPS track points (removes anomalies and corrects invalid coordinates)',
 			},
 			{
+				displayName: 'Normalize Track Points',
+				name: 'normalizePoints',
+				type: 'boolean',
+				displayOptions: {
+					show: {
+						resource: ['routes'],
+						operation: ['getRoute'],
+					},
+				},
+				default: false,
+				description: 'Whether to apply data normalization to GPS track points (reduces redundant data points for efficiency)',
+			},
+			{
 				displayName: 'Since Datetime',
 				name: 'since',
 				type: 'string',
@@ -322,6 +336,19 @@ export class Ride implements INodeType {
 				},
 				default: false,
 				description: 'Whether to apply data sanitization to GPS track points (removes anomalies and corrects invalid coordinates)',
+			},
+			{
+				displayName: 'Normalize Track Points',
+				name: 'normalizePoints',
+				type: 'boolean',
+				displayOptions: {
+					show: {
+						resource: ['trips'],
+						operation: ['getTrip'],
+					},
+				},
+				default: false,
+				description: 'Whether to apply data normalization to GPS track points (reduces redundant data points for efficiency)',
 			},
 			{
 				displayName: 'Page Number',
@@ -485,6 +512,7 @@ async function executeRoutesOperation(this: IExecuteFunctions, operation: string
 		case 'getRoute': {
 			const routeId = this.getNodeParameter('routeId', itemIndex) as string;
 			const sanitizePoints = this.getNodeParameter('sanitizePoints', itemIndex) as boolean;
+			const normalizePoints = this.getNodeParameter('normalizePoints', itemIndex) as boolean;
 			const apiResponseData: APIRouteData = await this.helpers.httpRequestWithAuthentication.call(this, 'rideApi', {
 				method: 'GET',
 				url: `/api/v1/routes/${routeId}.json`,
@@ -496,6 +524,11 @@ async function executeRoutesOperation(this: IExecuteFunctions, operation: string
 			// サニタイズが有効な場合、track_pointsを適正化
 			if (sanitizePoints && responseData.route.track_points) {
 				responseData.route.track_points = sanitizeTrackPoints(responseData.route.track_points);
+			}
+			
+			// ノーマライズが有効な場合、track_pointsを正規化
+			if (normalizePoints && responseData.route.track_points) {
+				responseData.route.track_points = normalizeTrackPoints(responseData.route.track_points);
 			}
 			
 			return responseData;
@@ -549,6 +582,7 @@ async function executeTripsOperation(this: IExecuteFunctions, operation: string,
 			const tripId = this.getNodeParameter('tripId', itemIndex) as string;
 			const outputFormats = this.getNodeParameter('outputFormats', itemIndex) as string[];
 			const sanitizePoints = this.getNodeParameter('sanitizePoints', itemIndex) as boolean;
+			const normalizePoints = this.getNodeParameter('normalizePoints', itemIndex) as boolean;
 			
 			const apiResponseData: APITripData = await this.helpers.httpRequestWithAuthentication.call(this, 'rideApi', {
 				method: 'GET',
@@ -561,6 +595,11 @@ async function executeTripsOperation(this: IExecuteFunctions, operation: string,
 			// サニタイズが有効な場合、track_pointsを適正化
 			if (sanitizePoints) {
 				responseData.trip.track_points = sanitizeTrackPoints(responseData.trip.track_points);
+			}
+			
+			// ノーマライズが有効な場合、track_pointsを正規化
+			if (normalizePoints) {
+				responseData.trip.track_points = normalizeTrackPoints(responseData.trip.track_points);
 			}
 			
 			const outputs: any[] = [];
