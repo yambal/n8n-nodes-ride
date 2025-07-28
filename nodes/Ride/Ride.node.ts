@@ -351,6 +351,34 @@ export class Ride implements INodeType {
 				description: 'Whether to apply data normalization to GPS track points (reduces redundant data points for efficiency)',
 			},
 			{
+				displayName: 'Image Width',
+				name: 'imageWidth',
+				type: 'number',
+				displayOptions: {
+					show: {
+						resource: ['trips'],
+						operation: ['getTrip'],
+						outputFormats: ['image'],
+					},
+				},
+				default: 600,
+				description: 'Width of the generated static map image in pixels',
+			},
+			{
+				displayName: 'Image Height',
+				name: 'imageHeight',
+				type: 'number',
+				displayOptions: {
+					show: {
+						resource: ['trips'],
+						operation: ['getTrip'],
+						outputFormats: ['image'],
+					},
+				},
+				default: 600,
+				description: 'Height of the generated static map image in pixels',
+			},
+			{
 				displayName: 'Page Number',
 				name: 'page',
 				type: 'number',
@@ -645,7 +673,9 @@ async function executeTripsOperation(this: IExecuteFunctions, operation: string,
 							throw new ApplicationError('Google Maps API key is required for image generation. Please add it to your Ride credentials.');
 						}
 						
-						const imageBuffer = await generateStaticMap(this, responseData, itemIndex);
+						const imageWidth = this.getNodeParameter('imageWidth', itemIndex, 600) as number;
+						const imageHeight = this.getNodeParameter('imageHeight', itemIndex, 600) as number;
+						const imageBuffer = await generateStaticMap(this, responseData, itemIndex, imageWidth, imageHeight);
 						const fileName = `trip-${tripId}-map.png`;
 						
 						// n8nのbinaryDataとして設定

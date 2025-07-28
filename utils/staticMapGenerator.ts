@@ -6,7 +6,9 @@ import { getSignificantLocations } from './common/geoUtils';
 export async function generateStaticMap(
 	context: IExecuteFunctions,
 	tripData: TripData,
-	itemIndex: number
+	itemIndex: number,
+	width: number = 600,
+	height: number = 600
 ): Promise<Buffer> {
 	const credentials = await context.getCredentials('rideApi');
 	const googleMapsApiKey = credentials.googleMapsApiKey as string;
@@ -43,7 +45,7 @@ export async function generateStaticMap(
 	// Google Maps Static API URLを構築
 	const baseUrl = 'https://maps.googleapis.com/maps/api/staticmap';
 	const params: string[] = [
-		'size=800x600',
+		`size=${width}x${height}`,
 		'format=png',
 		'maptype=roadmap'
 	];
