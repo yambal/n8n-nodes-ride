@@ -8,6 +8,7 @@ import { ApplicationError, NodeConnectionType } from 'n8n-workflow';
 import { APITripData, APITripsListResponse } from './types';
 import { APIRouteData, APIRoutesListResponse } from './types/Route.types';
 import { tripToKml } from '../../utils/converter/kml';
+import { tripToGpx } from '../../utils/converter/gpx';
 import { generateStaticMap } from '../../utils/staticMapGenerator';
 import { analyzeTripData } from '../../utils/tripAnalyzer';
 import { transformAPITripData, TripData, transformAPIRouteData, transformAPIRoutesListResponse } from '../../utils/dataTransformer';
@@ -342,6 +343,11 @@ export class Ride implements INodeType {
 						name: 'KML',
 						value: 'kml',
 						description: 'Convert trip data to KML format for GPS/mapping applications',
+					},
+					{
+						name: 'GPX',
+						value: 'gpx',
+						description: 'Convert trip data to GPX format for GPS devices and applications',
 					},
 					{
 						name: 'Image',
@@ -731,6 +737,35 @@ async function executeTripsOperation(this: IExecuteFunctions, operation: string,
 						});
 					} catch (error) {
 						throw new ApplicationError(`Failed to convert trip to KML: ${error.message}`);
+					}
+				}
+
+				if (format === 'gpx' && responseData) {
+					try {
+						const gpxData = tripToGpx(responseData);
+						const fileName = `trip-${tripId}.gpx`;
+						const gpxBuffer = Buffer.from(gpxData, 'utf8');
+						
+						const binaryData = await this.helpers.prepareBinaryData(
+							gpxBuffer,
+							fileName,
+							'application/gpx+xml'
+						);
+						
+						outputs.push({
+							json: {
+								trip_id: tripId,
+								fileName: fileName,
+								mimeType: 'application/gpx+xml',
+								analysis: analysis,
+								output_format: 'gpx'
+							},
+							binary: {
+								[fileName]: binaryData
+							}
+						});
+					} catch (error) {
+						throw new ApplicationError(`Failed to convert trip to GPX: ${error.message}`);
 					}
 				}
 				
