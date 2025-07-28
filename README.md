@@ -65,6 +65,9 @@ This node supports the following resources and operations:
 ### Sync
 - **Sync**: Retrieve changes to routes and/or trips since a specific datetime (specialized for data synchronization)
 
+### Analysis
+- **⚠️ Under Development**: Analysis features are currently in development and should not be used in production workflows
+
 ## Credentials
 
 To use this node, you need to authenticate with Ride with GPS using your service account credentials.
@@ -140,7 +143,26 @@ The Sync operation is particularly useful for:
 
 ## Changelog
 
-### Version 0.2.1 (Latest)
+### Version 0.2.2 (Latest)
+- **🔧 Data Quality Enhancement**: Added GPS track point sanitization
+  - Speed outlier removal using statistical analysis (mean + 3σ)
+  - Position-based speed calculation with Haversine distance formula
+- **📊 Data Optimization**: Track point normalization for reduced data size
+  - Stationary point detection and consolidation (10+ minutes within 100m)
+  - Typical 30-70% data reduction while preserving route accuracy
+- **🗺️ Enhanced Static Maps**: Improved trip visualization
+  - Orange markers for stationary points (15+ minute stops)
+  - Configurable image dimensions (default: 600x600px)
+  - Visual hierarchy: Green start, red end, orange stationary points
+- **⚙️ User Control**: Optional processing settings
+  - "Sanitize Track Points" checkbox for data cleaning
+  - "Normalize Track Points" checkbox for size optimization
+  - Pipeline: Sanitization → Normalization → Output
+- **🛠️ Reusable Utilities**: Geographic calculation framework
+  - Distance calculations, stationary detection, marker extraction
+  - Shared between normalization and static map features
+
+### Version 0.2.1
 - **📊 Readable Track Points**: Route and Trip track points are now automatically converted to readable property names
   - **Route Track Points**: API format `{x, y, e}` → Readable format `{longitude, latitude, elevation}`
   - **Trip Track Points**: API format `{x, y, e, t, s, h, c}` → Readable format `{longitude, latitude, elevation, timestamp, speed, heartRate, cadence}`
