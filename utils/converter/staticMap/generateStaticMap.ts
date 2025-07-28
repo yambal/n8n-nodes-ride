@@ -1,7 +1,7 @@
 import type { IExecuteFunctions } from 'n8n-workflow';
 import { ApplicationError } from 'n8n-workflow';
-import { TripData } from './dataTransformer';
-import { getSignificantLocations } from './common/geoUtils';
+import { TripData } from '../../dataTransformer';
+import { getSignificantLocations } from '../../common/geoUtils';
 
 export async function generateStaticMap(
 	context: IExecuteFunctions,

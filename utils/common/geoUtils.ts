@@ -1,58 +1,48 @@
-export interface CoordinatePoint {
-  longitude: number;
-  latitude: number;
-}
+import { TimestampedPoint, StationaryGroup } from '../types/geo.types';
 
-export interface TimestampedPoint extends CoordinatePoint {
-  timestamp: number;
-}
-
-export interface StationaryGroup<T = TimestampedPoint> {
-  startIndex: number;
-  endIndex: number;
-  points: T[];
-  centerPoint: T;
-  duration: number;
-  radius: number;
-}
-
-export interface StationaryDetectionOptions {
-  distanceThreshold?: number; // meters
-  timeThreshold?: number; // seconds
-}
+// Re-export types for backward compatibility
+export { CoordinatePoint, TimestampedPoint, StationaryGroup, StationaryDetectionOptions } from '../types/geo.types';
 
 /**
- * Calculates the distance between two GPS coordinates using Haversine formula
- * @param lat1 First point latitude in degrees
- * @param lon1 First point longitude in degrees  
- * @param lat2 Second point latitude in degrees
- * @param lon2 Second point longitude in degrees
- * @returns Distance in meters
+ * 2つのGPS座標間の距離をハーベルサイン式で計算する
+ * @param lat1 最初のポイントの緯度（度数）
+ * @param lon1 最初のポイントの経度（度数）  
+ * @param lat2 2番目のポイントの緯度（度数）
+ * @param lon2 2番目のポイントの経度（度数）
+ * @returns 距離（メートル）
  */
 export function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371000; // Earth's radius in meters
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const R = 6371000; // 地球の半径（メートル）
+  const dLat = (lat2 - lat1) * Math.PI / 180; // 緯度差をラジアンに変換
+  const dLon = (lon2 - lon1) * Math.PI / 180; // 経度差をラジアンに変換
+  
+  // ハーベルサイン式の計算
   const a = 
     Math.sin(dLat/2) * Math.sin(dLat/2) +
     Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
     Math.sin(dLon/2) * Math.sin(dLon/2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return R * c;
+  
+  return R * c; // 距離を返す
 }
 
 /**
- * Calculates the average coordinate from an array of points
- * @param points Array of coordinate points
- * @returns Average coordinate point
+ * 座標ポイントの配列から平均座標を計算する
+ * @param points 座標ポイントの配列
+ * @returns 平均座標ポイント
  */
 export function calculateAveragePoint<T extends TimestampedPoint>(points: T[]): T {
+  // 緯度の平均を計算
   const avgLat = points.reduce((sum, p) => sum + p.latitude, 0) / points.length;
+  // 経度の平均を計算
   const avgLon = points.reduce((sum, p) => sum + p.longitude, 0) / points.length;
+  
+  // 最初と最後のタイムスタンプから中間時刻を計算
   const startTime = points[0].timestamp;
   const endTime = points[points.length - 1].timestamp;
   const avgTime = Math.round((startTime + endTime) / 2);
   
+  // 最初のポイントの他のプロパティを保持しつつ、平均値で上書き
   return {
     ...points[0],
     latitude: avgLat,
@@ -63,33 +53,37 @@ export function calculateAveragePoint<T extends TimestampedPoint>(points: T[]): 
 
 
 /**
- * Extract key points from stationary groups for marker placement
- * @param groups Array of stationary groups
- * @returns Array of center points suitable for markers
+ * 停滞グループからマーカー配置用のキーポイントを抽出する
+ * @param groups 停滞グループの配列
+ * @returns マーカー用に適した中心点の配列
  */
 export function extractStationaryMarkers<T extends TimestampedPoint>(groups: StationaryGroup<T>[]): T[] {
+  // 各グループの中心点を抽出してマーカー用のポイント配列として返す
   return groups.map(group => group.centerPoint);
 }
 
 
 /**
- * Filter points to get significant locations (long stays)
- * @param points Array of timestamped coordinate points
- * @param minDuration Minimum duration in seconds (default: 30 minutes)
- * @param maxDistance Maximum radius in meters (default: 200m)
- * @returns Array of significant location points
+ * 長時間滞在した重要な場所を取得するためにポイントをフィルタリングする
+ * @param points タイムスタンプ付き座標ポイントの配列
+ * @param minDuration 最小滞在時間（秒）（デフォルト: 30分）
+ * @param maxDistance 最大半径（メートル）（デフォルト: 200m）
+ * @returns 重要な場所のポイント配列
  */
 export function getSignificantLocations<T extends TimestampedPoint>(
   points: T[], 
   minDuration: number = 30 * 60, 
   maxDistance: number = 200
 ): T[] {
+  // 停滞点検出モジュールを動的に読み込み
   const { detectStationaryGroups } = require('../normalizers/stationaryPointDetection');
   
+  // 指定された条件で停滞グループを検出
   const groups = detectStationaryGroups(points, { 
-    distanceThreshold: maxDistance, 
-    timeThreshold: minDuration 
+    distanceThreshold: maxDistance,  // 距離閾値
+    timeThreshold: minDuration       // 時間閾値
   });
   
+  // 停滞グループから重要な場所のマーカーを抽出して返す
   return extractStationaryMarkers(groups);
 }

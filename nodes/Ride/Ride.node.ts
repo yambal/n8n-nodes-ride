@@ -9,7 +9,7 @@ import { APITripData, APITripsListResponse } from './types';
 import { APIRouteData, APIRoutesListResponse } from './types/Route.types';
 import { tripToKml } from '../../utils/converter/kml';
 import { tripToGpx } from '../../utils/converter/gpx';
-import { generateStaticMap } from '../../utils/staticMapGenerator';
+import { generateStaticMap } from '../../utils/converter/staticMap';
 import { analyzeTripData } from '../../utils/tripAnalyzer';
 import { transformAPITripData, TripData, transformAPIRouteData, transformAPIRoutesListResponse } from '../../utils/dataTransformer';
 import { sanitizeTrackPoints } from '../../utils/sanitizers';
