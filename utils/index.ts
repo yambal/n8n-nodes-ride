@@ -4,4 +4,5 @@ export * from './kmlHelpers';
 export * from './staticMapGenerator';
 export * from './tripAnalyzer';
 export * from './dataTransformer';
+export * from './sanitizers';
 export * from './types';
