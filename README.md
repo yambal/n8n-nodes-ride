@@ -58,7 +58,7 @@ This node supports the following resources and operations:
 
 ### Trips
 - **Get Trip**: Retrieve details of a specific trip by ID (including track points and comprehensive trip statistics)
-  - **Multiple Output Formats**: Choose from Data, KML, and Image formats (multiple selections allowed)
+  - **Multiple Output Formats**: Choose from Data, KML, GPX, and Image formats (multiple selections allowed)
   - **Image Generation**: Create static map images using Google Maps Static API (optional feature)
 - **Get Trips**: Retrieve a paginated list of trips owned by the authenticated user
 
@@ -118,7 +118,7 @@ To use the static map image generation feature:
 - Select Resource: Trips
 - Select Operation: Get Trip  
 - Enter the Trip ID
-- Select Output Formats: Choose any combination of Data, KML, and/or Image
+- Select Output Formats: Choose any combination of Data, KML, GPX, and/or Image
 - **Image Format**: Creates a static map showing the trip route with start/end markers
   - Requires Google Maps API key in credentials
   - Generates n8n-compatible binary data for easy use with other nodes
@@ -143,7 +143,21 @@ The Sync operation is particularly useful for:
 
 ## Changelog
 
-### Version 0.2.2 (Latest)
+### Version 0.2.3 (Latest)
+- **📄 GPX Export Support**: Added GPX (GPS Exchange Format) output for trips
+  - New GPX output format option alongside existing Data, KML, and Image formats
+  - Standard XML-based format compatible with most GPS devices and mapping applications
+  - Includes track points, waypoints, and comprehensive trip metadata
+- **⚙️ Enhanced Normalization**: Extended track point optimization capabilities
+  - Improved stationary point detection with configurable thresholds
+  - Better handling of GPS noise and data inconsistencies
+  - More efficient data processing for large trip datasets
+- **🔧 Code Refactoring**: Improved code structure and maintainability
+  - Consolidated stationary point detection logic
+  - Enhanced data processing efficiency
+  - Better code organization for future development
+
+### Version 0.2.2
 - **🔧 Data Quality Enhancement**: Added GPS track point sanitization
   - Speed outlier removal using statistical analysis (mean + 3σ)
   - Position-based speed calculation with Haversine distance formula
@@ -181,6 +195,7 @@ The Sync operation is particularly useful for:
 - **🎯 Multiple Output Formats**: Trip retrieval now supports multiple simultaneous output formats
   - **Data**: Original JSON trip data 
   - **KML**: GPS/mapping application compatible format
+  - **GPX**: GPS Exchange Format for universal GPS device compatibility
   - **Image**: Static map visualization using Google Maps Static API
 - **🖼️ Static Map Generation**: New image output format creates visual trip representations
   - Shows complete trip route with start (S) and end (E) markers
@@ -192,7 +207,7 @@ The Sync operation is particularly useful for:
   - Only required for Image output format
   - All existing features continue to work without Google Maps API key
 - **💡 Enhanced Flexibility**: Choose any combination of output formats in a single request
-  - Generate multiple outputs (e.g., Data + KML + Image) from one trip fetch
+  - Generate multiple outputs (e.g., Data + KML + GPX + Image) from one trip fetch
   - Each output includes `output_format` identifier for easy processing
 - **⚠️ Smart Validation**: Automatic validation prevents Image selection without API key
 
