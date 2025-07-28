@@ -1,32 +1,78 @@
-# Pointデータノーマライズ機能実装方針
+# Pointデータノーマライズ機能実装仕様
 
 ## 概要
 
-TripおよびRouteデータのPointデータ（TrackPoint/RouteTrackPoint）に対するノーマライズ（正規化・間引き）機能を実装する。
-無駄なデータポイントを間引くことで、データサイズの削減、処理速度の向上、ストレージ効率の改善を目的とする。
+TripデータのTrackPointに対する停滞ポイント統合機能を実装。
+GPS追跡データから停滞地点を検出し、開始・中心・終了の3点に集約することで、データサイズの削減と軌跡の可読性向上を図る。
 
-**重要**: このノーマライズ機能は、API生データ（APITrackPoint）から可読形式に変換済みの **TrackPoint/RouteTrackPoint** に対して適用する。
+**重要**: このノーマライズ機能は、API生データ（APITrackPoint）から可読形式に変換済みの **TrackPoint** に対して適用する。
 
-## 基本方針（サニタイズ機能と同様）
+## 実装済み機能
 
-### シンプル設計原則
-1. **ノーマライズのOn/Off制御はUI画面で行う** - Trip/RouteのUI設定にて選択可能
-2. **ノーマライズ関数はオプションを持たない** - `normalizeTrackPoints<T>(points: T[]): T[]` のシンプル設計
-3. **受け取った型そのものを返す** - 専用の結果型は作成しない
-4. **ノーマライズ結果のための型を作成しない** - TrackPoint[], RouteTrackPoint[] をそのまま利用
+### 停滞ポイント統合
+- **対象**: タイムスタンプを持つTripデータのみ（RouteTrackPointには適用されない）
+- **検出条件**: 100m以内に10分以上滞在した地点
+- **統合方法**: 停滞グループを「開始点 → 中心点 → 終了点」の3点に集約
+- **計算方式**: Haversine公式による正確な距離計算と時間平均
 
-## データ構造（サニタイズと共通）
+## 現在の実装アーキテクチャ
+
+### ファイル構成
+```
+utils/
+├── normalizers/
+│   ├── index.ts                       # 関数エクスポートのみ
+│   └── stationaryPointDetection.ts    # 既存API互換エクスポート
+├── common/
+│   ├── geoUtils.ts                    # 汎用地理計算・停滞検知
+│   └── stationaryPointDetector.ts     # 停滞ポイント統合処理
+└── normalizers/
+    └── trackPointNormalizer.ts        # メイン関数
+```
+
+### 実装済み関数
+
+#### メイン関数（trackPointNormalizer.ts）
+```typescript
+export function normalizeTrackPoints<T>(points: T[]): T[] {
+  if (hasTimestamp(points)) {
+    return consolidateStationaryPoints(points);
+  }
+  
+  console.log(`[normalizeTrackPoints] Route data normalization not implemented yet`);
+  return points;
+}
+```
+
+#### 停滞ポイント統合（stationaryPointDetector.ts）
+```typescript
+export function consolidateStationaryPoints<T extends TimestampedPoint>(points: T[]): T[] {
+  // 停滞グループ検出 → 3点統合 → データ削減
+}
+```
+
+#### 汎用停滞検知（geoUtils.ts）
+```typescript
+export function detectStationaryGroups<T extends TimestampedPoint>(
+  points: T[], 
+  options: StationaryDetectionOptions = {}
+): StationaryGroup<T>[] {
+  // 汎用的な停滞ポイント検知アルゴリズム
+}
+```
+
+## データ構造
 
 ### Trip TrackPoint構造
 ```typescript
-interface TrackPoint {
+interface TrackPoint extends TimestampedPoint {
   longitude: number;    // 経度（度）
   latitude: number;     // 緯度（度） 
   elevation: number;    // 標高（m）
-  timestamp: number;    // タイムスタンプ（Unix時間）
-  speed?: number;       // 速度（m/s）- オプション
-  heartRate?: number;   // 心拍数（bpm）- オプション
-  cadence?: number;     // ケイデンス（rpm）- オプション
+  timestamp: number;    // タイムスタンプ（Unix秒）
+  speed?: number;       // 速度（m/s）- 使用されない
+  heartRate?: number;   // 心拍数（bpm）- 保持される
+  cadence?: number;     // ケイデンス（rpm）- 保持される
 }
 ```
 
@@ -36,141 +82,112 @@ interface RouteTrackPoint {
   longitude: number;    // 経度（度）
   latitude: number;     // 緯度（度）
   elevation: number;    // 標高（m）
+  // タイムスタンプなし → 現在処理対象外
 }
 ```
 
-## ノーマライズ要件と間引き手法
+## 処理詳細
 
-（これから一緒に考察・定義予定）
+### 停滞グループ検出
+1. **距離判定**: 開始点から100m以内にあるポイントをグループ化
+2. **時間判定**: 10分以上継続した滞在をグループとして認定
+3. **中心点計算**: グループ内ポイントの座標・タイムスタンプ平均値
 
-## 実装アーキテクチャ
+### ポイント統合
+1. **統合前**: 停滞グループ内の全ポイント（例：50ポイント）
+2. **統合後**: 開始・中心・終了の3ポイント
+3. **データ保持**: 元ポイントの全プロパティを保持（speed, heartRate, cadenceなど）
 
-### 1. ファイル構成（サニタイズと並行）
+### 削減効果
+- **一般的な削減率**: 30-70%（停滞時間の割合による）
+- **停滞地点の可視化**: StaticMapでオレンジマーカーとして表示
 
-```
-utils/
-├── normalizers/
-│   ├── index.ts                     # 関数エクスポートのみ
-│   └── trackPointNormalizer.ts      # メイン関数実装
-└── types/
-    └── normalizer.types.ts          # 必要に応じて最小限の型定義
-```
+## UI統合
 
-### 2. 実装予定関数
+### 設定項目
+- **Trip**: `getTrip` 操作で "Normalize Track Points" チェックボックス
+- **Route**: `getRoute` 操作で "Normalize Track Points" チェックボックス（効果なし）
+- **デフォルト**: `false`
+- **説明**: "Whether to consolidate stationary points to reduce data size"
 
+### 処理フロー
 ```typescript
-/**
- * TrackPoint/RouteTrackPoint 共通ノーマライズ関数
- * @param points 入力配列
- * @returns ノーマライズ済み配列（同じ型、削減されたポイント数）
- */
-export function normalizeTrackPoints<T>(points: T[]): T[] {
-  // TODO: 実際のノーマライズ処理実装予定
-  return points; // 初期実装はパススルー
+// 1. APIデータ変換（必須前処理）
+const responseData = transformAPITripData(apiResponseData);
+
+// 2. サニタイズ適用（条件付き）
+if (sanitizePoints) {
+  responseData.trip.track_points = sanitizeTrackPoints(responseData.trip.track_points);
+}
+
+// 3. ノーマライズ適用（条件付き）
+if (normalizePoints) {
+  responseData.trip.track_points = normalizeTrackPoints(responseData.trip.track_points);
 }
 ```
 
-### 3. ノーマライズ手法の選択基準
-
-#### Trip データ（タイムスタンプ有り）
-1. **時間ベース間引き**: 短時間間隔のポイント削除
-2. **距離ベース間引き**: 近距離ポイント削除
-3. **優先順位**: 時間ベース → 距離ベース
-
-#### Route データ（タイムスタンプ無し）
-1. **距離ベース間引き**: 近距離ポイント削除のみ
-2. **Douglas-Peucker アルゴリズム**: 形状保持重視の場合
-
-## 使用方法
-
-### 基本使用例
+## 使用例
 
 ```typescript
-import { normalizeTrackPoints } from './utils';
-import { TrackPoint } from './types';
+import { normalizeTrackPoints } from './utils/normalizers';
 
-// TrackPoint配列のノーマライズ
-const trackPoints: TrackPoint[] = [...]; // 1000ポイント
-const normalized: TrackPoint[] = normalizeTrackPoints(trackPoints); // ~300ポイント
-
-// RouteTrackPoint配列のノーマライズ  
-const routePoints: RouteTrackPoint[] = [...]; // 500ポイント
-const normalizedRoute: RouteTrackPoint[] = normalizeTrackPoints(routePoints); // ~150ポイント
+const trackPoints: TrackPoint[] = [...]; // 1000ポイント（停滞多数）
+const normalized: TrackPoint[] = normalizeTrackPoints(trackPoints); // ~400ポイント（60%削減）
 ```
 
-### UI制御での統合（予定）
+## StaticMap統合
+
+停滞ポイント検知機能はStaticMap生成でも活用されています：
 
 ```typescript
-// Ride.node.ts での将来の実装例
-const normalizeEnabled = this.getNodeParameter('normalizePoints', itemIndex) as boolean;
-
-if (normalizeEnabled) {
-  trip.track_points = normalizeTrackPoints(trip.track_points);
-}
+// StaticMap用の重要な停滞地点抽出
+const stationaryPoints = getSignificantLocations(trackPoints, 15 * 60, 100); // 15分以上
+// → オレンジマーカーとして地図に表示
 ```
 
-## 実装ステップ
+## 汎用ユーティリティ
 
-### Phase 1: 基本設計と実装
-1. **設計方針策定** - シンプル設計原則の確立（サニタイズと同様）
-2. **基本関数実装** - `normalizeTrackPoints<T>(points: T[]): T[]`
-3. **パススルー実装** - 実際の処理は後回し、構造のみ実装
+### 距離計算
+```typescript
+export function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number
+```
 
-### Phase 2: コア機能実装
-（具体的な実装内容は要件定義後に決定）
+### 停滞地点抽出
+```typescript
+export function getSignificantLocations<T extends TimestampedPoint>(
+  points: T[], 
+  minDuration: number = 30 * 60, 
+  maxDistance: number = 200
+): T[]
+```
 
-### Phase 3: 統合作業
-4. **Ride.node.ts への統合** - UI設定とロジックの統合
-5. **UI設定追加** - Trip/Route 用の "Normalize Track Points" チェックボックス
-6. **処理ロジック実装** - 条件分岐によるノーマライズ適用
+### マーカー抽出
+```typescript
+export function extractStationaryMarkers<T extends TimestampedPoint>(groups: StationaryGroup<T>[]): T[]
+```
 
-## 期待される効果
+## 実装されていない項目
 
-### データサイズ削減
-- **一般的な削減率**: 60-80%（記録密度による）
-- **ストレージ効率**: APIレスポンス、データベース容量の削減
-- **転送効率**: ネットワーク帯域使用量の削減
+以下の機能は現在実装されていません：
 
-### 処理性能向上
-- **描画性能**: マップ表示、KML変換の高速化
-- **分析処理**: 統計計算、解析処理の高速化
-- **メモリ使用量**: 大量ポイントデータの軽量化
+- ❌ RouteTrackPointの距離ベース間引き
+- ❌ Douglas-Peucker アルゴリズムによる軌跡最適化
+- ❌ 時間ベース間引き（短時間間隔ポイント削除）
+- ❌ 設定可能な閾値パラメータ
 
-### データ品質
-- **ノイズ除去**: GPS精度誤差による微細な揺れの除去
-- **可読性向上**: 重要な軌跡特徴の強調
-- **視覚的改善**: 地図表示でのライン品質向上
-
-## 設計の利点（サニタイズと共通）
+## 設計原則
 
 ### シンプル性の確保
-- 関数は単一責任（ノーマライズのみ）
-- 型は最小限（不要な複雑さを排除）
+- 関数は単一責任（停滞ポイント統合のみ）
 - オプションなし（UIで制御）
+- 汎用ユーティリティとの分離
 
-### 型安全性
-- 入力と出力の型が一致
-- ジェネリクスで TrackPoint/RouteTrackPoint 両対応
-- コンパイル時型チェック
-
-### 既存システムとの親和性
-- サニタイズ機能と同じ実装パターン
-- 既存のデータ変換フローに自然に統合
-- 段階的な機能追加が可能
-
-## 注意事項
+### 再利用性
+- 汎用地理計算関数の独立実装
+- StaticMap等の他機能での活用
+- 設定可能な検出パラメータ
 
 ### データ整合性
-- ノーマライズ後もGPS軌跡の基本的な形状を保持
-- 開始・終了点は必ず保持
-- 極端な削減は避ける（最低限のポイント数を確保）
-
-### 設定バランス
-- 削減率と品質のトレードオフを考慮
-- 用途に応じた最適な閾値設定
-- ユーザーフィードバックによる調整
-
-### パフォーマンス
-- 大量データ処理時のメモリ使用量監視
-- 計算量O(n)以下のアルゴリズム選択
-- 必要に応じたバッチ処理の検討
+- 開始・終了点の必須保持
+- 元データのプロパティ継承
+- 軌跡形状の基本保持

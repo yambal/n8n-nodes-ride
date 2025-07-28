@@ -1,6 +1,7 @@
 import type { IExecuteFunctions } from 'n8n-workflow';
 import { ApplicationError } from 'n8n-workflow';
 import { TripData } from './dataTransformer';
+import { getSignificantLocations } from './common/geoUtils';
 
 export async function generateStaticMap(
 	context: IExecuteFunctions,
@@ -52,6 +53,22 @@ export async function generateStaticMap(
 	
 	// 終了点マーカー（赤）
 	params.push(`markers=color:red|label:E|${endPoint.latitude},${endPoint.longitude}`);
+	
+	// 停滞ポイントマーカー（黄色）
+	const stationaryPoints = getSignificantLocations(trackPoints, 15 * 60, 100); // 15分以上、100m以内
+	if (stationaryPoints.length > 0) {
+		console.log(`[generateStaticMap] Adding ${stationaryPoints.length} stationary point markers`);
+		
+		// Google Maps Static APIの制限に合わせて最大10個の停滞ポイントマーカーを追加
+		const maxStationaryMarkers = 10;
+		const stationaryStep = Math.max(1, Math.ceil(stationaryPoints.length / maxStationaryMarkers));
+		
+		for (let i = 0; i < stationaryPoints.length; i += stationaryStep) {
+			const point = stationaryPoints[i];
+			const markerIndex = Math.floor(i / stationaryStep) + 1;
+			params.push(`markers=color:orange|label:${markerIndex}|${point.latitude},${point.longitude}`);
+		}
+	}
 
 	// パス（ルート）を追加 - URLサイズ制限のため座標数を制限
 	const maxPathPoints = 200; // Google Static Map APIのURL長制限（16,384文字）対応
