@@ -11,6 +11,7 @@ import { tripToKml } from '../../utils/tripToKml';
 import { generateStaticMap } from '../../utils/staticMapGenerator';
 import { analyzeTripData } from '../../utils/tripAnalyzer';
 import { transformAPITripData, TripData, transformAPIRouteData, transformAPIRoutesListResponse } from '../../utils/dataTransformer';
+import { sanitizeTrackPoints } from '../../utils/sanitizers';
 
 export class Ride implements INodeType {
 	description: INodeTypeDescription = {
@@ -216,6 +217,19 @@ export class Ride implements INodeType {
 				description: 'The ID of the route to retrieve',
 			},
 			{
+				displayName: 'Sanitize Track Points',
+				name: 'sanitizePoints',
+				type: 'boolean',
+				displayOptions: {
+					show: {
+						resource: ['routes'],
+						operation: ['getRoute'],
+					},
+				},
+				default: false,
+				description: 'Whether to apply data sanitization to GPS track points (removes anomalies and corrects invalid coordinates)',
+			},
+			{
 				displayName: 'Since Datetime',
 				name: 'since',
 				type: 'string',
@@ -295,6 +309,19 @@ export class Ride implements INodeType {
 				],
 				default: ['data'],
 				description: 'Choose the output formats for trip data (multiple selections allowed)',
+			},
+			{
+				displayName: 'Sanitize Track Points',
+				name: 'sanitizePoints',
+				type: 'boolean',
+				displayOptions: {
+					show: {
+						resource: ['trips'],
+						operation: ['getTrip'],
+					},
+				},
+				default: false,
+				description: 'Whether to apply data sanitization to GPS track points (removes anomalies and corrects invalid coordinates)',
 			},
 			{
 				displayName: 'Page Number',
@@ -457,13 +484,21 @@ async function executeRoutesOperation(this: IExecuteFunctions, operation: string
 	switch (operation) {
 		case 'getRoute': {
 			const routeId = this.getNodeParameter('routeId', itemIndex) as string;
+			const sanitizePoints = this.getNodeParameter('sanitizePoints', itemIndex) as boolean;
 			const apiResponseData: APIRouteData = await this.helpers.httpRequestWithAuthentication.call(this, 'rideApi', {
 				method: 'GET',
 				url: `/api/v1/routes/${routeId}.json`,
 			});
 			
 			// APIから受信したデータを可読性の高い形式に変換
-			return transformAPIRouteData(apiResponseData);
+			const responseData = transformAPIRouteData(apiResponseData);
+			
+			// サニタイズが有効な場合、track_pointsを適正化
+			if (sanitizePoints && responseData.route.track_points) {
+				responseData.route.track_points = sanitizeTrackPoints(responseData.route.track_points);
+			}
+			
+			return responseData;
 		}
 
 		case 'getRoutes': {
@@ -513,6 +548,7 @@ async function executeTripsOperation(this: IExecuteFunctions, operation: string,
 		case 'getTrip': {
 			const tripId = this.getNodeParameter('tripId', itemIndex) as string;
 			const outputFormats = this.getNodeParameter('outputFormats', itemIndex) as string[];
+			const sanitizePoints = this.getNodeParameter('sanitizePoints', itemIndex) as boolean;
 			
 			const apiResponseData: APITripData = await this.helpers.httpRequestWithAuthentication.call(this, 'rideApi', {
 				method: 'GET',
@@ -521,6 +557,11 @@ async function executeTripsOperation(this: IExecuteFunctions, operation: string,
 			
 			// APIから受信したデータを可読性の高い形式に変換
 			const responseData: TripData = transformAPITripData(apiResponseData);
+			
+			// サニタイズが有効な場合、track_pointsを適正化
+			if (sanitizePoints) {
+				responseData.trip.track_points = sanitizeTrackPoints(responseData.trip.track_points);
+			}
 			
 			const outputs: any[] = [];
 			
