@@ -257,7 +257,7 @@ export class Ride implements INodeType {
 				},
 				options: [
 					{
-						name: 'Low (0.2%) - Keep more points',
+						name: 'Low (0.2%) - Keep More Points',
 						value: 'LOW',
 					},
 					{
@@ -265,7 +265,7 @@ export class Ride implements INodeType {
 						value: 'MEDIUM',
 					},
 					{
-						name: 'High (0.5%) - Remove more points',
+						name: 'High (0.5%) - Remove More Points',
 						value: 'HIGH',
 					},
 				],
@@ -397,7 +397,7 @@ export class Ride implements INodeType {
 				},
 				options: [
 					{
-						name: 'Low (0.2%) - Keep more points',
+						name: 'Low (0.2%) - Keep More Points',
 						value: 'LOW',
 					},
 					{
@@ -405,7 +405,7 @@ export class Ride implements INodeType {
 						value: 'MEDIUM',
 					},
 					{
-						name: 'High (0.5%) - Remove more points',
+						name: 'High (0.5%) - Remove More Points',
 						value: 'HIGH',
 					},
 				],
