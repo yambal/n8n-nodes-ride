@@ -9,6 +9,7 @@ import { APITripData, APITripsListResponse } from './types';
 import { APIRouteData, APIRoutesListResponse } from './types/Route.types';
 import { tripToKml } from '../../utils/converter/kml';
 import { tripToGpx } from '../../utils/converter/gpx';
+import { tripToGeojson } from '../../utils/converter/geojson';
 import { generateStaticMap } from '../../utils/converter/staticMap';
 import { analyzeTripData } from '../../utils/tripAnalyzer';
 import { transformAPITripData, TripData, transformAPIRouteData, transformAPIRoutesListResponse } from '../../utils/dataTransformer';
@@ -335,14 +336,14 @@ export class Ride implements INodeType {
 				},
 				options: [
 					{
-						name: 'Data',
-						value: 'data',
+						name: 'Raw Data',
+						value: 'rawData',
 						description: 'Return raw trip data',
 					},
 					{
-						name: 'KML',
-						value: 'kml',
-						description: 'Convert trip data to KML format for GPS/mapping applications',
+						name: 'GeoJSON',
+						value: 'geojson',
+						description: 'Convert trip data to GeoJSON format for geographic data analysis and mapping',
 					},
 					{
 						name: 'GPX',
@@ -354,8 +355,13 @@ export class Ride implements INodeType {
 						value: 'image',
 						description: 'Generate static map image using Google Maps (⚠️ Requires Google Maps API key in credentials)',
 					},
+					{
+						name: 'KML',
+						value: 'kml',
+						description: 'Convert trip data to KML format for GPS/mapping applications',
+					},
 				],
-				default: ['data'],
+				default: ['rawData'],
 				description: 'Choose the output formats for trip data (multiple selections allowed)',
 			},
 			{
@@ -507,23 +513,51 @@ export class Ride implements INodeType {
 				}
 
 				if (Array.isArray(responseData)) {
-					// 複数のアウトプット（複数形式選択）の場合
+					// 複数のアウトプット（複数形式選択）の場合 - MERGEモードで統合
+					const mergedOutput: any = {
+						formats: [],
+						analysis: null
+					};
+					const mergedBinary: any = {};
+					
 					for (const output of responseData) {
-						if (output.binary) {
-							// バイナリデータが含まれる場合
-							returnData.push({
-								json: output.json,
-								binary: output.binary,
-								pairedItem: { item: i }
-							});
-						} else {
-							// 通常のJSONデータの場合
-							returnData.push({
-								json: output.json,
-								pairedItem: { item: i }
-							});
+						const format = output.json.output_format;
+						mergedOutput.formats.push(format);
+						
+						// 分析データは共通なので最初のもので上書き
+						if (output.json.analysis) {
+							mergedOutput.analysis = output.json.analysis;
+						}
+						
+						// フォーマット別にデータを格納
+						if (format === 'rawData') {
+							// rawDataの場合は、output_formatとanalysisを除いてそのまま格納
+							const { output_format, analysis, ...dataContent } = output.json;
+							mergedOutput.rawData = dataContent;
+						} else if (format === 'geojson') {
+							mergedOutput.geojson = output.json.geojson;
+						} else if (output.binary) {
+							// バイナリデータ（kml, gpx, image）の場合
+							Object.assign(mergedBinary, output.binary);
+							// メタデータも保存
+							mergedOutput[format] = {
+								fileName: output.json.fileName,
+								mimeType: output.json.mimeType
+							};
 						}
 					}
+					
+					// 統合されたアウトプットを追加
+					const mergedItem: any = {
+						json: mergedOutput,
+						pairedItem: { item: i }
+					};
+					
+					if (Object.keys(mergedBinary).length > 0) {
+						mergedItem.binary = mergedBinary;
+					}
+					
+					returnData.push(mergedItem);
 				} else if (responseData && responseData.binary) {
 					// バイナリデータ（画像）の場合
 					returnData.push({
@@ -701,12 +735,12 @@ async function executeTripsOperation(this: IExecuteFunctions, operation: string,
 			
 			// 各出力形式に対して処理
 			for (const format of outputFormats) {
-				if (format === 'data') {
+				if (format === 'rawData') {
 					outputs.push({
 						json: {
 							...responseData,
 							analysis: analysis,
-							output_format: 'data'
+							output_format: 'rawData'
 						}
 					});
 				}
@@ -805,6 +839,22 @@ async function executeTripsOperation(this: IExecuteFunctions, operation: string,
 						});
 					} catch (error) {
 						throw new ApplicationError(`Failed to generate static map: ${error.message}`);
+					}
+				}
+				
+				if (format === 'geojson' && responseData) {
+					try {
+						const geojsonData = tripToGeojson(responseData);
+						
+						outputs.push({
+							json: {
+								geojson: geojsonData,
+								analysis: analysis,
+								output_format: 'geojson'
+							}
+						});
+					} catch (error) {
+						throw new ApplicationError(`Failed to convert trip to GeoJSON: ${error.message}`);
 					}
 				}
 			}
