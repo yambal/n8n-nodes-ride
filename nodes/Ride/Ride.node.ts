@@ -336,11 +336,6 @@ export class Ride implements INodeType {
 				},
 				options: [
 					{
-						name: 'Raw Data',
-						value: 'rawData',
-						description: 'Return raw trip data',
-					},
-					{
 						name: 'GeoJSON',
 						value: 'geojson',
 						description: 'Convert trip data to GeoJSON format for geographic data analysis and mapping',
@@ -359,6 +354,11 @@ export class Ride implements INodeType {
 						name: 'KML',
 						value: 'kml',
 						description: 'Convert trip data to KML format for GPS/mapping applications',
+					},
+					{
+						name: 'Raw Data',
+						value: 'rawData',
+						description: 'Return raw trip data',
 					},
 				],
 				default: ['rawData'],
