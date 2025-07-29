@@ -11,7 +11,6 @@ import { tripToKml } from '../../utils/converter/kml';
 import { tripToGpx } from '../../utils/converter/gpx';
 import { tripToGeojson } from '../../utils/converter/geojson';
 import { generateStaticMap } from '../../utils/converter/staticMap';
-import { analyzeTripData } from '../../utils/tripAnalyzer';
 import { transformAPITripData, TripData, transformAPIRouteData, transformAPIRoutesListResponse } from '../../utils/dataTransformer';
 import { sanitizeTrackPoints } from '../../utils/sanitizers';
 import { normalizeTrackPoints, CollinearRemovalLevel } from '../../utils/normalizers';
@@ -515,8 +514,7 @@ export class Ride implements INodeType {
 				if (Array.isArray(responseData)) {
 					// 複数のアウトプット（複数形式選択）の場合 - MERGEモードで統合
 					const mergedOutput: any = {
-						formats: [],
-						analysis: null
+						formats: []
 					};
 					const mergedBinary: any = {};
 					
@@ -524,15 +522,11 @@ export class Ride implements INodeType {
 						const format = output.json.output_format;
 						mergedOutput.formats.push(format);
 						
-						// 分析データは共通なので最初のもので上書き
-						if (output.json.analysis) {
-							mergedOutput.analysis = output.json.analysis;
-						}
 						
 						// フォーマット別にデータを格納
 						if (format === 'rawData') {
-							// rawDataの場合は、output_formatとanalysisを除いてそのまま格納
-							const { output_format, analysis, ...dataContent } = output.json;
+							// rawDataの場合は、output_formatを除いてそのまま格納
+							const { output_format, ...dataContent } = output.json;
 							mergedOutput.rawData = dataContent;
 						} else if (format === 'geojson') {
 							mergedOutput.geojson = output.json.geojson;
@@ -730,16 +724,12 @@ async function executeTripsOperation(this: IExecuteFunctions, operation: string,
 			
 			const outputs: any[] = [];
 			
-			// Trip解析を実行（全形式で共通）
-			const analysis = analyzeTripData(responseData.trip);
-			
 			// 各出力形式に対して処理
 			for (const format of outputFormats) {
 				if (format === 'rawData') {
 					outputs.push({
 						json: {
 							...responseData,
-							analysis: analysis,
 							output_format: 'rawData'
 						}
 					});
@@ -762,7 +752,6 @@ async function executeTripsOperation(this: IExecuteFunctions, operation: string,
 								trip_id: tripId,
 								fileName: fileName,
 								mimeType: 'application/vnd.google-earth.kml+xml',
-								analysis: analysis,
 								output_format: 'kml'
 							},
 							binary: {
@@ -791,7 +780,6 @@ async function executeTripsOperation(this: IExecuteFunctions, operation: string,
 								trip_id: tripId,
 								fileName: fileName,
 								mimeType: 'application/gpx+xml',
-								analysis: analysis,
 								output_format: 'gpx'
 							},
 							binary: {
@@ -830,7 +818,6 @@ async function executeTripsOperation(this: IExecuteFunctions, operation: string,
 								trip_id: tripId,
 								fileName: fileName,
 								mimeType: 'image/png',
-								analysis: analysis,
 								output_format: 'image'
 							},
 							binary: {
@@ -849,7 +836,6 @@ async function executeTripsOperation(this: IExecuteFunctions, operation: string,
 						outputs.push({
 							json: {
 								geojson: geojsonData,
-								analysis: analysis,
 								output_format: 'geojson'
 							}
 						});
