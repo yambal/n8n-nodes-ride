@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.5] - 2025-01-31
+## [0.2.5]
 
 ### Added
 - **🔍 Investigation Points Export**: Added investigation points output format for trip analysis
@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Improved README structure and readability
   - Better organization of version history and release notes
 
-## [0.2.4] - 2024-01-XX
+## [0.2.4]
 
 ### Added
 - **🗺️ GeoJSON Support**: Added GeoJSON output format for geographic data analysis and mapping
@@ -36,7 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Output field changed from `json.data` to `json.rawData`
   - More descriptive naming for better user understanding
 
-## [0.2.3] - 2024-01-XX
+## [0.2.3]
 
 ### Added
 - **📄 GPX Export Support**: Added GPX (GPS Exchange Format) output for trips
@@ -56,7 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Enhanced data processing efficiency
   - Better code organization for future development
 
-## [0.2.2] - 2024-01-XX
+## [0.2.2]
 
 ### Added
 - **🔧 Data Quality Enhancement**: Added GPS track point sanitization
@@ -77,7 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Distance calculations, stationary detection, marker extraction
   - Shared between normalization and static map features
 
-## [0.2.1] - 2024-01-XX
+## [0.2.1]
 
 ### Changed
 - **📊 Readable Track Points**: Route and Trip track points are now automatically converted to readable property names
@@ -96,7 +96,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - No need to remember that 'x' means longitude or 'y' means latitude
   - Self-documenting property names improve workflow readability
 
-## [0.2.0] - 2024-01-XX
+## [0.2.0]
 
 ### Added
 - **🎯 Multiple Output Formats**: Trip retrieval now supports multiple simultaneous output formats
@@ -117,23 +117,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Each output includes `output_format` identifier for easy processing
 - **⚠️ Smart Validation**: Automatic validation prevents Image selection without API key
 
-## [0.1.4] - 2024-01-XX
+## [0.1.4]
 
 ### Changed
 - **Authentication Update**: Changed from API key to service account email/password authentication
 
-## [0.1.3] - 2024-01-XX
+## [0.1.3]
 
 ### Changed
 - Experimental features (reverted in 0.1.4)
 
-## [0.1.2] - 2024-01-XX
+## [0.1.2]
 
 ### Added
 - Added KML conversion functionality for trip data
 - Improved error handling and validation
 
-## [0.1.1] - 2024-01-XX
+## [0.1.1]
 
 ### Added
 - Initial release with basic Ride with GPS API integration
