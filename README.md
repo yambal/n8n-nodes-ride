@@ -1,43 +1,30 @@
 # n8n-nodes-ride
 
-## 🚨 **Breaking Changes in v0.2.4** 🚨
-
-**⚠️ IMPORTANT: Output Format Changed for Trip Operations**
-
-Starting from v0.2.4, the **Trip output format has been significantly changed** to improve workflow design:
-
-### **Before (v0.2.3 and earlier) - JOIN Output:**
-Multiple formats were output as **separate items**:
-```
-Item 1: {"trip": {...}, "analysis": {...}, "output_format": "data"}
-Item 2: {"trip_id": 123, "fileName": "trip.kml", "output_format": "kml"} + binary data
-Item 3: {"trip_id": 123, "fileName": "trip.gpx", "output_format": "gpx"} + binary data
-```
-
-### **After (v0.2.4+) - MERGED Output:**
-Multiple formats are **combined into a single item**:
-```json
-{
-  "formats": ["rawData", "geojson", "kml"],
-  "analysis": {...},
-  "rawData": {...},
-  "geojson": {...},
-  "kml": {"fileName": "trip.kml", "mimeType": "..."}
-}
-```
-
-**🔧 Migration Required:** Update your workflows to access data via:
-- Raw trip data: `json.rawData` (renamed from `json.data`)
-- GeoJSON data: `json.geojson` (NEW format)
-- Binary files: `binary["filename"]`
-
----
-
-This is an n8n community node. It lets you use Ride with GPS in your n8n workflows.
-
-Ride with GPS is a comprehensive cycling platform that allows users to plan routes, track rides, organize events, and share their cycling adventures with a community of riders.
+This is an n8n community node. It lets you use [Ride with GPS](https://ridewithgps.com) in your n8n workflows.
 
 [n8n](https://n8n.io/) is a [fair-code licensed](https://docs.n8n.io/reference/license/) workflow automation platform.
+
+### Ride with GPS
+
+[Ride with GPS](https://ridewithgps.com) is a comprehensive cycling platform that allows users to plan routes, track rides, organize events, and share their cycling adventures with a community of riders. The platform offers GPS tracking, route planning tools, performance analytics, and social features for cyclists of all levels.
+
+This custom node enables you to integrate and leverage your Ride with GPS data within n8n workflows, allowing you to automate data processing, analysis, and integration with other services and platforms.
+
+## Use Cases
+
+Automatically process Ride with GPS data in n8n, connect with other nodes, and enable analysis, recording, and content generation.
+
+🚴‍♀️ **Finish your ride and instantly auto-post beautiful summaries with route maps to Instagram, Twitter, and Strava!** No more manual uploads.
+
+🥾 **Hiking data flows automatically to your Notion database and then shares highlights on Facebook!** Elevation data and scenic waypoints included.
+
+🏍️ **Motorcycle adventures auto-backup to cloud storage and generate travel journals!** Preserve every memorable journey forever.
+
+🚗 **Family road trips automatically create daily logs and email them to grandparents!** Real-time journey sharing made effortless.
+
+✍️ **City exploration tracks become blog drafts automatically!** Extract visited spots and route maps for instant content creation.
+
+---
 
 [Installation](#installation)  
 [Operations](#operations)  
@@ -71,8 +58,16 @@ This node supports the following resources and operations:
 ### Trips
 
 - **Get Trip**: Retrieve details of a specific trip by ID (including track points and comprehensive trip statistics)
-  - **Multiple Output Formats**: Choose from Data, KML, GPX, and Image formats (multiple selections allowed)
-  - **Image Generation**: Create static map images using Google Maps Static API (optional feature)
+  - **Data Processing Options**:
+    - **Sanitize Track Points**: Remove GPS noise and speed outliers using statistical analysis for cleaner data
+    - **Normalize Track Points**: Optimize data size by consolidating stationary points and reducing redundancy (typical 30-70% size reduction)
+  - **Multiple Output Formats**: Choose from the following formats (multiple selections allowed):
+    - **Raw Data**: Original Ride with GPS data in JSON format with complete trip information and statistics
+    - **GeoJSON**: RFC 7946 compliant format converted from Raw Data, optimized for n8n workflow processing and geographic data analysis
+    - **KML**: Keyhole Markup Language format for Google Earth and GPS applications
+    - **GPX**: GPS Exchange Format compatible with most GPS devices and mapping software
+    - **Investigation Points**: Collection of key waypoints for comprehensive route analysis, designed for querying external APIs (e.g., reverse geocoding for location names)
+    - **Image**: Static map visualization using Google Maps Static API (requires API key)
 - **Get Trips**: Retrieve a paginated list of trips owned by the authenticated user
 
 ### Sync
@@ -141,10 +136,13 @@ To use the static map image generation feature:
 - Select Resource: Trips
 - Select Operation: Get Trip
 - Enter the Trip ID
-- Select Output Formats: Choose any combination of Data, KML, GPX, and/or Image
-- **Image Format**: Creates a static map showing the trip route with start/end markers
-  - Requires Google Maps API key in credentials
-  - Generates n8n-compatible binary data for easy use with other nodes
+- Select Output Formats: Choose any combination of the following:
+  - **Raw Data**: Original Ride with GPS data in complete JSON format
+  - **GeoJSON**: Standardized geographic format, ideal for n8n workflow processing
+  - **KML**: Compatible with Google Earth and GPS applications
+  - **GPX**: Universal GPS format for devices and mapping software
+  - **Investigation Points**: Key waypoints for external API queries (reverse geocoding, location analysis)
+  - **Image**: Visual map representation with route and markers (requires Google Maps API key)
 
 ![Static Map Example](docs/StaticMap.png)
 _Example of generated static map showing trip route with start (S) and end (E) markers_
@@ -170,108 +168,7 @@ The Sync operation is particularly useful for:
 
 ## Changelog
 
-### Version 0.2.4 (Latest)
-- **🗺️ GeoJSON Support**: Added GeoJSON output format for geographic data analysis and mapping
-  - RFC 7946 compliant GeoJSON format with LineString (track) and Point (stationary) features
-  - Includes comprehensive trip metadata in feature properties  
-  - Enhanced compatibility with GIS applications and mapping libraries
-- **🔄 Unified Output Format**: Trip output now merges multiple formats into single item (⚠️ **Breaking Change**)
-  - Previous versions output separate items for each format (JOIN behavior)
-  - New version combines all selected formats into one output item (MERGE behavior)
-  - Improves workflow design simplicity and reduces connection complexity
-- **📝 Data Naming Improvement**: "Data" format renamed to "Raw Data" for clarity
-  - Output field changed from `json.data` to `json.rawData`
-  - More descriptive naming for better user understanding
-
-### Version 0.2.3
-
-- **📄 GPX Export Support**: Added GPX (GPS Exchange Format) output for trips
-  - New GPX output format option alongside existing Data, KML, and Image formats
-  - Standard XML-based format compatible with most GPS devices and mapping applications
-  - Includes track points, waypoints, and comprehensive trip metadata
-- **⚙️ Enhanced Normalization**: Extended track point optimization capabilities
-  - Improved stationary point detection with configurable thresholds
-  - Better handling of GPS noise and data inconsistencies
-  - More efficient data processing for large trip datasets
-- **🔧 Code Refactoring**: Improved code structure and maintainability
-  - Consolidated stationary point detection logic
-  - Enhanced data processing efficiency
-  - Better code organization for future development
-
-### Version 0.2.2
-
-- **🔧 Data Quality Enhancement**: Added GPS track point sanitization
-  - Speed outlier removal using statistical analysis (mean + 3σ)
-  - Position-based speed calculation with Haversine distance formula
-- **📊 Data Optimization**: Track point normalization for reduced data size
-  - Stationary point detection and consolidation (10+ minutes within 100m)
-  - Typical 30-70% data reduction while preserving route accuracy
-- **🗺️ Enhanced Static Maps**: Improved trip visualization
-  - Orange markers for stationary points (15+ minute stops)
-  - Configurable image dimensions (default: 600x600px)
-  - Visual hierarchy: Green start, red end, orange stationary points
-- **⚙️ User Control**: Optional processing settings
-  - "Sanitize Track Points" checkbox for data cleaning
-  - "Normalize Track Points" checkbox for size optimization
-  - Pipeline: Sanitization → Normalization → Output
-- **🛠️ Reusable Utilities**: Geographic calculation framework
-  - Distance calculations, stationary detection, marker extraction
-  - Shared between normalization and static map features
-
-### Version 0.2.1
-
-- **📊 Readable Track Points**: Route and Trip track points are now automatically converted to readable property names
-  - **Route Track Points**: API format `{x, y, e}` → Readable format `{longitude, latitude, elevation}`
-  - **Trip Track Points**: API format `{x, y, e, t, s, h, c}` → Readable format `{longitude, latitude, elevation, timestamp, speed, heartRate, cadence}`
-  - **Immediate Conversion**: Transformation occurs immediately upon API response reception
-- **🚀 Performance Optimization**: Routes list responses skip unnecessary track point transformation
-  - Routes list API responses don't include track points, so transformation is optimized to avoid wasteful processing
-  - Individual route details still receive full track point transformation when present
-- **🔧 Enhanced Data Processing**: Added comprehensive transformation functions in `utils/dataTransformer.ts`
-  - `transformAPIRouteTrackPoint()` and related functions for Route track points
-  - Maintained existing Trip transformation functions for consistency
-- **📈 Improved Developer Experience**: Track point data is now more intuitive to work with in workflows
-  - No need to remember that 'x' means longitude or 'y' means latitude
-  - Self-documenting property names improve workflow readability
-
-### Version 0.2.0
-
-- **🎯 Multiple Output Formats**: Trip retrieval now supports multiple simultaneous output formats
-  - **Data**: Original JSON trip data
-  - **KML**: GPS/mapping application compatible format
-  - **GPX**: GPS Exchange Format for universal GPS device compatibility
-  - **Image**: Static map visualization using Google Maps Static API
-- **🖼️ Static Map Generation**: New image output format creates visual trip representations
-  - Shows complete trip route with start (S) and end (E) markers
-  - Optimized for up to 200 coordinate points for detailed route display
-  - Returns n8n-compatible binary data for easy integration with other nodes
-  - See example image in [Usage section](#usage)
-- **🔐 Google Maps Integration**: Optional Google Maps API key support
-  - Add API key to existing Ride API credentials (completely optional)
-  - Only required for Image output format
-  - All existing features continue to work without Google Maps API key
-- **💡 Enhanced Flexibility**: Choose any combination of output formats in a single request
-  - Generate multiple outputs (e.g., Data + KML + GPX + Image) from one trip fetch
-  - Each output includes `output_format` identifier for easy processing
-- **⚠️ Smart Validation**: Automatic validation prevents Image selection without API key
-
-### Version 0.1.4
-
-- **Authentication Update**: Changed from API key to service account email/password authentication
-
-### Version 0.1.3
-
-- Experimental features (reverted in 0.1.4)
-
-### Version 0.1.2
-
-- Added KML conversion functionality for trip data
-- Improved error handling and validation
-
-### Version 0.1.1
-
-- Initial release with basic Ride with GPS API integration
-- Support for User, Events, Routes, Trips, and Sync operations
+For detailed version history and release notes, see [CHANGELOG.md](CHANGELOG.md).
 
 ## Resources
 
