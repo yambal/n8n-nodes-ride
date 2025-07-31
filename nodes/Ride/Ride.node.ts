@@ -10,6 +10,7 @@ import { APIRouteData, APIRoutesListResponse } from './types/Route.types';
 import { tripToKml } from '../../utils/converter/kml';
 import { tripToGpx } from '../../utils/converter/gpx';
 import { tripToGeojson } from '../../utils/converter/geojson';
+import { tripToInvestigationPoints } from '../../utils/converter/investigationPoints';
 import { generateStaticMap } from '../../utils/converter/staticMap';
 import { transformAPITripData, TripData, transformAPIRouteData, transformAPIRoutesListResponse } from '../../utils/dataTransformer';
 import { sanitizeTrackPoints } from '../../utils/sanitizers';
@@ -350,6 +351,11 @@ export class Ride implements INodeType {
 						description: 'Generate static map image using Google Maps (⚠️ Requires Google Maps API key in credentials)',
 					},
 					{
+						name: 'Investigation Points',
+						value: 'investigationPoints',
+						description: 'Extract key investigation points from trip data (start, end, stationary points)',
+					},
+					{
 						name: 'KML',
 						value: 'kml',
 						description: 'Convert trip data to KML format for GPS/mapping applications',
@@ -530,6 +536,8 @@ export class Ride implements INodeType {
 							mergedOutput.rawData = dataContent;
 						} else if (format === 'geojson') {
 							mergedOutput.geojson = output.json.geojson;
+						} else if (format === 'investigationPoints') {
+							mergedOutput.investigationPoints = output.json.investigationPoints;
 						} else if (output.binary) {
 							// バイナリデータ（kml, gpx, image）の場合
 							Object.assign(mergedBinary, output.binary);
@@ -841,6 +849,21 @@ async function executeTripsOperation(this: IExecuteFunctions, operation: string,
 						});
 					} catch (error) {
 						throw new ApplicationError(`Failed to convert trip to GeoJSON: ${error.message}`);
+					}
+				}
+				
+				if (format === 'investigationPoints' && responseData) {
+					try {
+						const investigationPointsData = tripToInvestigationPoints(responseData);
+						
+						outputs.push({
+							json: {
+								investigationPoints: investigationPointsData,
+								output_format: 'investigationPoints'
+							}
+						});
+					} catch (error) {
+						throw new ApplicationError(`Failed to convert trip to investigation points: ${error.message}`);
 					}
 				}
 			}

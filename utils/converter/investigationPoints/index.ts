@@ -1,0 +1,1 @@
+export { tripToInvestigationPoints } from './tripToInvestigationPoints';
