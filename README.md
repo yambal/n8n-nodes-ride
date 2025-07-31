@@ -74,10 +74,6 @@ This node supports the following resources and operations:
 
 - **Sync**: Retrieve changes to routes and/or trips since a specific datetime (specialized for data synchronization)
 
-### Analysis
-
-- **⚠️ Under Development**: Analysis features are currently in development and should not be used in production workflows
-
 ## Credentials
 
 To use this node, you need to authenticate with Ride with GPS using your service account credentials.
